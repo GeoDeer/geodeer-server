@@ -1,3 +1,16 @@
+asgiref==3.8.1
+asttokens==2.0.5
+crispy-bootstrap5==2024.10
+decorator==5.1.1
+dj-database-url==2.3.0
+Django==5.1.5
+django-crispy-forms==2.3
+django-environ==0.12.0
+django-filter==24.3
+djangorestframework==3.15.2
+djangorestframework-gis==1.1
+executing==0.8.3
+GDAL==3.6.2
 gunicorn==23.0.0
 ipython==8.30.0
 jedi==0.19.2
