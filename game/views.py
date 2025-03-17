@@ -6,7 +6,3 @@ from django.http import HttpResponse
 
 def index(request):
     return HttpResponse("GeoDeer!")
-
-
-def monitor_game(request):
-    return render(request, 'game/monitor_game.html')
