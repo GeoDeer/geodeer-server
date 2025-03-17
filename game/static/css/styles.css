@@ -1,0 +1,104 @@
+/* Genel Stiller */
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+}
+
+/* Navbar */
+.header {
+    background-color: rgba(118, 182, 241, 0.8);
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 22px;
+    color: black;
+}
+
+/* Kullanıcı Bilgileri */
+.user-info {
+    display: flex;
+    align-items: center;
+    margin-right: 50px;
+}
+
+.user-info img {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+
+/* Harita Alanı */
+#map {
+    width: 100%;
+    height: 100vh; /* Tam ekran yüksekliği */
+}
+
+/* Oyun Bilgi Paneli */
+.game-info {
+    position: absolute;
+    top: 80px;
+    left: 20px;
+    background: white;
+    padding: 20px;
+    border: 2px solid #000;
+    border-radius: 10px;
+    width: 350px;
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.game-info table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 18px;
+}
+
+.game-info th, .game-info td {
+    border: 2px solid black;
+    padding: 10px;
+    text-align: center;
+}
+
+/* Diskalifiye Butonu */
+.disqualify {
+    background-color: red;
+    color: white;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 5px;
+}
+
+/* Butonlar */
+.main-menu, .show-results {
+    position: absolute;
+    bottom: 10px;
+    padding: 15px;
+    border: none;
+    cursor: pointer;
+    border-radius: 10px;
+    font-size: 16px;
+    color: white;
+}
+
+.main-menu {
+    left: 20px;
+    background-color: #003366;
+}
+
+.show-results {
+    right: 20px;
+    background-color: black;
+}
