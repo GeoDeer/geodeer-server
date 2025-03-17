@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>GeoDeer - A Map-Based Treasure Hunt Game</title>
+
+  <!-- Leaflet CSS (CDN) -->
+  <!-- This stylesheet provides the default styles for Leaflet maps -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+  />
+
+  <style>
+    /* 
+      Font Settings:
+      - Using "Times New Roman" for a classic look
+      - Reset margins and paddings
+    */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Times New Roman", Times, serif;
+    }
+
+    /* 
+      Color Variables:
+      - Define custom CSS variables for consistent color usage
+    */
+    :root {
+      --dark-green: #296B45;    /* Used for top/bottom bars */
+      --white: #FFFFFF;         /* Used for backgrounds/text */
+      --black: #000000;         /* Used for text/borders */
+      --gray-green: #A7B8A6;    /* Overall page background */
+      --soft-blue: #B3D8E7;     /* Used for panel backgrounds */
+      --vibrant-orange: #FF7F50;/* Used for buttons */
+    }
+
+    /* 
+      Basic page layout (vertical):
+      - Full width & height
+      - Column flex direction
+    */
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: var(--gray-green);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 
+      Top Header:
+      - Dark green background, white text
+      - Horizontal flex layout for logo and subtitle
+    */
+    #header {
+      background-color: var(--dark-green);
+      color: var(--white);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      flex: 0 0 auto;
+    }
+    #header .logo {
+      font-size: 1.4rem;
+      font-weight: bold;
+    }
+    #header .subtitle {
+      font-size: 1rem;
+      opacity: 0.9;
+    }
+
+    /* 
+      Main Container:
+      - Flex: 1 so it occupies remaining vertical space
+      - Horizontal layout: left side (sidebar) + right side (map)
+      - Overflow: hidden to avoid scrollbars
+      - min-height: 0 ensures children can flex properly
+    */
+    #main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* 
+      Left Sidebar (Waypoints):
+      - Fixed width of 400px
+      - White background with a right border
+      - Scrollable if content overflows
+    */
+    #sidebar {
+      width: 400px;
+      background-color: var(--white);
+      border-right: 2px solid #ccc;
+      padding: 10px 20px;
+      box-sizing: border-box;
+      overflow-y: auto;
+    }
+    #sidebar h2 {
+      font-size: 1.2rem;
+      color: var(--black);
+      margin-bottom: 8px;
+    }
+
+    /* 
+      Waypoint Boxes:
+      - Soft blue background
+      - Rounded corners
+    */
+    .waypoint-box {
+      border: 1px solid var(--soft-blue);
+      border-radius: 4px;
+      padding: 10px;
+      margin-bottom: 12px;
+      background-color: var(--soft-blue);
+    }
+    .waypoint-box h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 1rem;
+      color: var(--dark-green);
+    }
+    .waypoint-box label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 3px;
+      color: var(--black);
+    }
+    .waypoint-box input[type="text"] {
+      width: 100%;
+      padding: 6px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+    }
+
+    /* 
+      "Show the Coordinates" Button inside each Waypoint Box
+    */
+    .waypoint-box .btn-coord {
+      background-color: var(--vibrant-orange);
+      color: var(--white);
+      border: none;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .waypoint-box .btn-coord:hover {
+      opacity: 0.9;
+    }
+
+    /* 
+      "Save Locations" Button
+    */
+    .save-locations-btn {
+      background-color: var(--vibrant-orange);
+      color: var(--white);
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+      margin-top: 10px;
+      display: block;
+    }
+    .save-locations-btn:hover {
+      opacity: 0.9;
+    }
+
+    /* 
+      Map Container (right side):
+      - Fills the rest of the horizontal space
+      - Minimum height to ensure it is visible
+    */
+    #map {
+      flex: 1;
+      min-height: 400px;
+    }
+
+    /* 
+      Footer (bottom bar):
+      - Dark green background
+      - Contains navigation or extra info
+    */
+    #footer {
+      background-color: var(--dark-green);
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex: 0 0 auto;
+    }
+    #footer button {
+      background-color: var(--vibrant-orange);
+      color: var(--white);
+      border: none;
+      padding: 8px 12px;
+      cursor: pointer;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+    #footer button:hover {
+      opacity: 0.9;
+    }
+
+    /* 
+      Collapsible Panel in the Bottom-Right:
+      - Positioned above the footer (bottom: 60px)
+      - Animated open/close with transform
+    */
+    .game-info-panel {
+      position: absolute;
+      bottom: 60px;
+      right: 0;
+      width: 260px;
+      background-color: var(--white);
+      border: 2px solid #ccc;
+      border-top-left-radius: 8px;
+      box-shadow: -2px -2px 6px rgba(0,0,0,0.2);
+      transition: transform 0.3s ease;
+      z-index: 999; /* Appear above the map */
+    }
+    /* Collapsed state: slide off to the right */
+    .collapsed {
+      transform: translateX(100%);
+    }
+
+    /* 
+      Handle (arrow) on the left side of the panel:
+      - Allows user to reopen the panel when collapsed
+    */
+    .toggle-handle {
+      position: absolute;
+      left: -30px;
+      top: 40%;
+      width: 30px;
+      height: 40px;
+      background-color: var(--dark-green);
+      border-top-left-radius: 4px;
+      border-bottom-left-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #fff;
+      font-size: 1.4rem;
+    }
+    .toggle-handle:hover {
+      background-color: var(--vibrant-orange);
+    }
+
+    /* 
+      Panel Header:
+      - Dark green background, white text
+      - Slightly larger font
+    */
+    .game-info-panel h2 {
+      background-color: var(--dark-green);
+      color: #fff;
+      font-size: 1.2rem;
+      margin: 0;
+      padding: 10px;
+      border-top-left-radius: 6px;
+    }
+
+    /* 
+      Panel Content:
+      - Padding around the content
+      - Labels and inputs styled similarly to the left sidebar
+    */
+    .game-info-panel .info-content {
+      padding: 10px;
+    }
+    .game-info-panel label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 3px;
+      color: var(--black);
+      margin-top: 8px;
+      font-size: 0.9rem;
+    }
+    .game-info-panel input[type="text"] {
+      width: 100%;
+      padding: 6px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+    }
+
+    /* 
+      "Save Game" Button:
+      - Full width, vibrant orange background
+    */
+    .save-game-btn {
+      background-color: var(--vibrant-orange);
+      color: var(--white);
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      margin-top: 10px;
+      display: block;
+      width: 100%;
+      text-align: center;
+    }
+    .save-game-btn:hover {
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <!-- Top Bar -->
+  <div id="header">
+    <div class="logo">GeoDeer</div>
+    <div class="subtitle">A Map-Based Treasure Hunt Game</div>
+  </div>
+
+  <!-- Main Section: Left Sidebar + Map -->
+  <div id="main">
+    <!-- Left Sidebar: Waypoint Locations -->
+    <div id="sidebar">
+      <h2>Waypoint Locations</h2>
+
+      <!-- Waypoint 1 -->
+      <div class="waypoint-box">
+        <h3>1. Waypoint</h3>
+        <label for="wp1-name">Name:</label>
+        <input type="text" id="wp1-name" placeholder="Geomeclas (Engineering)" />
+
+        <label for="wp1-q1">Question #1:</label>
+        <input type="text" id="wp1-q1" placeholder="This is a START point" />
+
+        <label for="wp1-answer">Answers:</label>
+        <input type="text" id="wp1-answer" placeholder="No question" />
+
+        <label for="wp1-year">Year:</label>
+        <input type="text" id="wp1-year" placeholder="1982" />
+
+        <label for="wp1-area">Area:</label>
+        <input type="text" id="wp1-area" placeholder="For future leaders..." />
+
+        <button class="btn-coord">Show the Coordinates</button>
+      </div>
+
+      <!-- Waypoint 2 -->
+      <div class="waypoint-box">
+        <h3>2. Waypoint</h3>
+        <label for="wp2-name">Name:</label>
+        <input type="text" id="wp2-name" placeholder="FES" />
+
+        <label for="wp2-q1">Question #1:</label>
+        <input type="text" id="wp2-q1" placeholder="Who was the first faculty...?" />
+
+        <label for="wp2-answer">Answers:</label>
+        <input type="text" id="wp2-answer" placeholder="No question" />
+
+        <label for="wp2-area">Area:</label>
+        <input type="text" id="wp2-area" placeholder="Economics and Management..." />
+
+        <button class="btn-coord">Show the Coordinates</button>
+      </div>
+
+      <!-- Waypoint 3 -->
+      <div class="waypoint-box">
+        <h3>3. Waypoint</h3>
+        <label for="wp3-name">Name:</label>
+        <input type="text" id="wp3-name" placeholder="Art Faculty" />
+
+        <label for="wp3-q1">Question #1:</label>
+        <input type="text" id="wp3-q1" placeholder="Which part is known for creative...?" />
+
+        <label for="wp3-answer">Answers:</label>
+        <input type="text" id="wp3-answer" placeholder="No question" />
+
+        <button class="btn-coord">Show the Coordinates</button>
+      </div>
+
+      <!-- Button to Save All Waypoint Locations -->
+      <button class="save-locations-btn">Save Locations</button>
+    </div>
+
+    <!-- Map Area (Right Side) -->
+    <div id="map"></div>
+  </div>
+
+  <!-- Footer Bar -->
+  <div id="footer">
+    <button>Back to Main Menu</button>
+    <div style="color: var(--white); font-size: 0.9rem;">
+      © 2025 | OpenStreetMap
+    </div>
+  </div>
+
+  <!-- Collapsible Panel at the Bottom-Right Corner -->
+  <!-- Add "collapsed" if you want it closed initially -->
+  <div id="gameInfoPanel" class="game-info-panel collapsed">
+    <!-- The handle (arrow) on the left side -->
+    <div class="toggle-handle" onclick="toggleGamePanel()">
+      <span id="arrow">&#10095;</span> <!-- Right arrow by default -->
+    </div>
+
+    <!-- Panel Title -->
+    <h2>General Information About Game</h2>
+
+    <!-- Panel Content (labels and inputs) -->
+    <div class="info-content">
+      <label for="gameName">Game Name:</label>
+      <input type="text" id="gameName" value="Hacettepe Un." />
+
+      <label for="startTime">Start Time:</label>
+      <input type="text" id="startTime" value="2025/09/16" />
+
+      <label for="numPlayers">Number of Players:</label>
+      <input type="text" id="numPlayers" value="4" />
+
+      <label for="time">Time:</label>
+      <input type="text" id="time" value="01:00:00" />
+
+      <button class="save-game-btn">Save Game</button>
+    </div>
+  </div>
+
+  <!-- Leaflet JS (CDN) -->
+  <!-- Provides all map functionality -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
+  ></script>
+
+  <script>
+    // Create the map with an initial view over Hacettepe coordinates
+    var map = L.map('map').setView([39.8644, 32.7467], 15);
+
+    // Load and display OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19
+    }).addTo(map);
+
+    // Define custom PNG icons
+    var redIcon = L.icon({
+      iconUrl: 'images/red.png',
+      iconSize: [50, 50],
+      iconAnchor: [25, 45],
+      popupAnchor: [0, -45]
+    });
+
+    var purpleIcon = L.icon({
+      iconUrl: 'images/purple.png',
+      iconSize: [50, 50],
+      iconAnchor: [25, 45],
+      popupAnchor: [0, -45]
+    });
+
+    var cyanIcon = L.icon({
+      iconUrl: 'images/cyan.png',
+      iconSize: [50, 50],
+      iconAnchor: [25, 45],
+      popupAnchor: [0, -45]
+    });
+
+    // Place markers with custom icons
+    // Each marker has a popup showing a simple label
+    L.marker([39.8644, 32.7467], { icon: redIcon })
+      .addTo(map)
+      .bindPopup("1. WAYPOINT");
+
+    L.marker([39.8652, 32.7475], { icon: purpleIcon })
+      .addTo(map)
+      .bindPopup("2. WAYPOINT");
+
+    L.marker([39.8639, 32.7450], { icon: cyanIcon })
+      .addTo(map)
+      .bindPopup("3. WAYPOINT");
+
+    /**
+     * Toggles the right panel open or closed.
+     * Also changes the direction of the arrow (left or right).
+     */
+    function toggleGamePanel() {
+      const panel = document.getElementById("gameInfoPanel");
+      const arrow = document.getElementById("arrow");
+      panel.classList.toggle("collapsed");
+
+      // Change the arrow direction depending on the panel state
+      if (panel.classList.contains("collapsed")) {
+        // Closed state: arrow points right
+        arrow.innerHTML = "&#10095;";
+      } else {
+        // Open state: arrow points left
+        arrow.innerHTML = "&#10094;";
+      }
+    }
+  </script>
+</body>
+</html>
