@@ -158,6 +158,19 @@
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
 
   <script>
+
+    var map = L.map('map').setView([39.8644, 32.7467], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+  
+    function getIcon(iconName) {
+      return L.icon({
+        iconUrl: "{% static 'images/' %}" + iconName + ".png",
+        iconSize: [50, 50],
+        iconAnchor: [25, 45],
+        popupAnchor: [0, -45]
+      });
+    }
+  
     var markers = {};
 
     {% for player in players %}
@@ -181,6 +194,7 @@
         .then(response => response.json())
         .then(data => {
           data.players.forEach(function(player) {
+          
             if (markers[player.id] && player.lat && player.lng) {
               markers[player.id].setLatLng([player.lat, player.lng]);
             }
@@ -189,7 +203,6 @@
         .catch(error => console.error('Konum güncelleme hatası:', error));
     }
   
-    // 5 saniyede bir güncelleme çağrısı yap
     setInterval(updateMarkers, 5000);
   </script>
 </body>
