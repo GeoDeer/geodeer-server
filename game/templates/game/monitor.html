@@ -148,29 +148,29 @@
 
   <!-- Footer Section -->
   <div id="footer">
-    {% comment %} <button onclick="window.location.href='{% url 'main_menu' %}'">Back to Main Menu</button> {% endcomment %}
-    {% comment %} <button onclick="window.location.href='{% url 'results' %}'">Show the Results</button> {% endcomment %}
+    <button >Back to Main Menu</button>
+    <button >Show the Results</button>
+    {% comment %} <button onclick="window.location.href='{% url 'main_menu' %}'">Back to Main Menu</button>
+    <button onclick="window.location.href='{% url 'results' %}'">Show the Results</button> {% endcomment %}
   </div>
 
   <!-- Leaflet JS (CDN) -->
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
 
   <script>
-    // Create the map and set initial view
+
     var map = L.map('map').setView([39.8644, 32.7467], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-
-    // Define icons for each player (assuming the images are in the static folder)
+  
     function getIcon(iconName) {
       return L.icon({
-        iconUrl: "{% static 'images/' %}" + iconName,
+        iconUrl: "{% static 'images/' %}" + iconName + ".png",
         iconSize: [50, 50],
         iconAnchor: [25, 45],
         popupAnchor: [0, -45]
       });
     }
-
-    // Add markers for each player
+  
     {% for player in players %}
     L.marker([{{ player.lat }}, {{ player.lng }}], { icon: getIcon("{{ player.icon }}") })
       .addTo(map)
