@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404
+from django.http import JsonResponse
 from .models import Game, UserScore, UserLocation
 
 # Create your views here.
@@ -20,7 +21,7 @@ def monitor(request, pk):
     location_map = {}
     for loc in user_locations:
         uid = loc.user.user_id
-    
+        
         if uid not in location_map or loc.pk > location_map[uid].pk:
             location_map[uid] = loc
 
@@ -32,7 +33,7 @@ def monitor(request, pk):
             'id': uid,
             'name': score.user.username,
             'score': score.total_score,
-            'lat': loc.lat if loc else None,  
+            'lat': loc.lat if loc else None,
             'lng': loc.lon if loc else None,
         }
         players.append(player)
@@ -41,5 +42,8 @@ def monitor(request, pk):
     available_colors = ['cyan', 'red', 'purple', 'yellow']
     for i, player in enumerate(sorted_players):
         player['icon'] = available_colors[i % len(available_colors)]
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({'players': sorted_players})
     
-    return render(request, 'game/monitor.html', {'players': sorted_players})
+    return render(request, 'game/monitor.html', {'players': sorted_players, 'game': game})
