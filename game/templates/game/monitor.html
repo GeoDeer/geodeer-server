@@ -158,24 +158,39 @@
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
 
   <script>
+    var markers = {};
 
-    var map = L.map('map').setView([39.8644, 32.7467], 15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+    {% for player in players %}
+      markers["{{ player.id }}"] = L.marker([{{ player.lat }}, {{ player.lng }}], {
+        icon: getIcon("{{ player.icon }}")
+      })
+        .addTo(map)
+        .bindTooltip("{{ player.name }}", {
+          permanent: true,
+          direction: 'top',
+          offset: [0, -50]
+        });
+    {% endfor %}
   
-    function getIcon(iconName) {
-      return L.icon({
-        iconUrl: "{% static 'images/' %}" + iconName + ".png",
-        iconSize: [50, 50],
-        iconAnchor: [25, 45],
-        popupAnchor: [0, -45]
-      });
+    function updateMarkers() {
+      fetch(window.location.href, {
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          data.players.forEach(function(player) {
+            if (markers[player.id] && player.lat && player.lng) {
+              markers[player.id].setLatLng([player.lat, player.lng]);
+            }
+          });
+        })
+        .catch(error => console.error('Konum güncelleme hatası:', error));
     }
   
-    {% for player in players %}
-    L.marker([{{ player.lat }}, {{ player.lng }}], { icon: getIcon("{{ player.icon }}") })
-      .addTo(map)
-      .bindTooltip("{{ player.name }}", { permanent: true, direction: 'top', offset: [0, -50] });
-    {% endfor %}
+    // 5 saniyede bir güncelleme çağrısı yap
+    setInterval(updateMarkers, 5000);
   </script>
 </body>
 </html>
