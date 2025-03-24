@@ -2,9 +2,76 @@ from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from .models import Game, UserScore, UserLocation
 
+from django.contrib.auth import authenticate, login
+from django.contrib.auth.models import User
+from django.contrib import messages
+from django.shortcuts import redirect
+
 # Create your views here.
 # game/views.py
 from django.http import HttpResponse
+
+def auth(request):
+    return render(request, 'auth.html')
+
+
+
+
+
+
+# Kullanıcı girişi
+def login_view(request):
+    if request.method == "POST":
+        username = request.POST.get("username")
+        password = request.POST.get("password")
+
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None:
+            login(request, user)
+            return redirect("index")  # Giriş başarılıysa ana sayfaya git
+        else:
+            messages.error(request, "Kullanıcı adı veya şifre hatalı.")
+            return redirect("auth_page")  # Tekrar auth sayfasına
+
+    return redirect("auth_page")
+
+# Kullanıcı kaydı
+def register_view(request):
+    if request.method == "POST":
+        username = request.POST.get("username")
+        email = request.POST.get("email")
+        password1 = request.POST.get("password1")
+        password2 = request.POST.get("password2")
+
+        if password1 != password2:
+            messages.error(request, "Şifreler eşleşmiyor.")
+            return redirect("auth_page")
+
+        if User.objects.filter(username=username).exists():
+            messages.error(request, "Bu kullanıcı adı zaten var.")
+            return redirect("auth_page")
+
+        if User.objects.filter(email=email).exists():
+            messages.error(request, "Bu e-posta zaten kayıtlı.")
+            return redirect("auth_page")
+
+        user = User.objects.create_user(username=username, email=email, password=password1)
+        user.save()
+        messages.success(request, "Kayıt başarılı! Şimdi giriş yapabilirsiniz.")
+        return redirect("auth_page")
+
+    return redirect("auth_page")
+
+
+
+
+
+
+
+
+
+
 
 def index(request):
     return HttpResponse("GeoDeer!")
