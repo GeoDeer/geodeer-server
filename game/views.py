@@ -12,12 +12,7 @@ from django.shortcuts import redirect
 from django.http import HttpResponse
 
 def auth(request):
-    return render(request, 'auth.html')
-
-
-
-
-
+    return render(request, 'game/auth.html')
 
 # Kullanıcı girişi
 def login_view(request):
