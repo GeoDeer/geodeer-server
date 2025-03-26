@@ -103,6 +103,12 @@
       font-size: 14px;
       border-radius: 5px;
     }
+    .leaflet-marker-icon {
+      filter: drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.7));
+    }
+    .polyline-shadow {
+      filter: drop-shadow(4px 4px 6px rgba(0, 0, 0, 0.7));
+    }
   </style>
 </head>
 <body>
@@ -158,7 +164,6 @@
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
 
   <script>
-
     var map = L.map('map').setView([39.8644, 32.7467], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
   
@@ -172,35 +177,50 @@
     }
   
     var markers = {};
-
+    var polylines = {};
+  
     {% for player in players %}
-      markers["{{ player.id }}"] = L.marker([{{ player.lat }}, {{ player.lng }}], {
-        icon: getIcon("{{ player.icon }}")
-      })
-        .addTo(map)
-        .bindTooltip("{{ player.name }}", {
-          permanent: true,
-          direction: 'top',
-          offset: [0, -50]
-        });
-    {% endfor %}
+      var latlng = [{{ player.lat }}, {{ player.lng }}];
+      markers["{{ player.id }}"] = L.marker(latlng, { icon: getIcon("{{ player.icon }}") })
+          .addTo(map)
+          .bindTooltip("{{ player.name }}", {
+            permanent: true,
+            direction: 'top',
+            offset: [0, -50]
+          });
+  
+          var pathCoords = [
+          {% for point in player.path %}
+            [{{ point.lat }}, {{ point.lng }}],
+          {% endfor %}
+        ];
+        polylines["{{ player.id }}"] = L.polyline(pathCoords, { 
+          color: "{{ player.icon }}",
+          weight: 5,
+          dashArray: "10, 10",
+          className: "polyline-shadow"
+        }).addTo(map);
+      {% endfor %}
   
     function updateMarkers() {
       fetch(window.location.href, {
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest'
-        }
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
       })
-        .then(response => response.json())
-        .then(data => {
-          data.players.forEach(function(player) {
-          
-            if (markers[player.id] && player.lat && player.lng) {
-              markers[player.id].setLatLng([player.lat, player.lng]);
-            }
-          });
-        })
-        .catch(error => console.error('Konum güncelleme hatası:', error));
+      .then(response => response.json())
+      .then(data => {
+        data.players.forEach(function(player) {
+          if (markers[player.id] && player.lat && player.lng) {
+            markers[player.id].setLatLng([player.lat, player.lng]);
+          }
+          if (polylines[player.id] && player.path) {
+            var newCoords = player.path.map(function(pt) {
+              return [pt.lat, pt.lng];
+            });
+            polylines[player.id].setLatLngs(newCoords);
+          }
+        });
+      })
+      .catch(error => console.error('Locaiton update error:', error));
     }
   
     setInterval(updateMarkers, 3000);
