@@ -8,8 +8,6 @@ from django.contrib import messages
 from django.shortcuts import redirect
 
 # Create your views here.
-# game/views.py
-from django.http import HttpResponse
 
 def auth(request):
     return render(request, 'game/auth.html')
