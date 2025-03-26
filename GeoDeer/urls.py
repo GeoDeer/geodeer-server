@@ -20,7 +20,7 @@ from game import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('/', views.auth, name='auth_page'),
+    path('', views.auth, name='auth_page'),
     path('game/', include('game.urls')),
     path('api/', include('mobile.urls')),
 ]
