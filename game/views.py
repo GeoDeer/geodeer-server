@@ -1,13 +1,14 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
-from .models import Game, UserScore, UserLocation
-
-from django.contrib.auth import authenticate, login
-from django.contrib.auth.models import User
 from django.contrib import messages
-from django.shortcuts import redirect
+from django.contrib.auth import login
+from django.contrib.auth.hashers import make_password, check_password
+from django.contrib.auth.models import User
+from .models import Game, UserScore, UserLocation
+from .models import User
 
-# Create your views here.
+def auth(request):
+    return render(request, 'game/auth.html')
 
 def auth(request):
     return render(request, 'game/auth.html')
@@ -17,13 +18,16 @@ def login_view(request):
         username = request.POST.get("username")
         password = request.POST.get("password")
 
-        user = authenticate(request, username=username, password=password)
-
-        if user is not None:
-            login(request, user)
-            return redirect("index")
-        else:
-            messages.error(request, "Kullanıcı adı veya şifre hatalı.")
+        try:
+            user = User.objects.get(username=username)
+            if check_password(password, user.password):
+                login(request, user) 
+                return redirect("index")
+            else:
+                messages.error(request, "Incorrect username or password.")
+                return redirect("auth_page")
+        except User.DoesNotExist:
+            messages.error(request, "Incorrect username or password.")
             return redirect("auth_page")
 
     return redirect("auth_page")
@@ -36,33 +40,24 @@ def register_view(request):
         password2 = request.POST.get("password2")
 
         if password1 != password2:
-            messages.error(request, "Şifreler eşleşmiyor.")
+            messages.error(request, "Passwords do not match.")
             return redirect("auth_page")
 
         if User.objects.filter(username=username).exists():
-            messages.error(request, "Bu kullanıcı adı zaten var.")
+            messages.error(request, "Username already exists.")
             return redirect("auth_page")
 
         if User.objects.filter(email=email).exists():
-            messages.error(request, "Bu e-posta zaten kayıtlı.")
+            messages.error(request, "E-mail already exists.")
             return redirect("auth_page")
 
-        user = User.objects.create_user(username=username, email=email, password=password1)
+        hashed_password = make_password(password1)
+        user = User(username=username, email=email, password=hashed_password)
         user.save()
-        messages.success(request, "Kayıt başarılı! Şimdi giriş yapabilirsiniz.")
+        messages.success(request, "Registration successful! You can now log in.")
         return redirect("auth_page")
 
     return redirect("auth_page")
-
-
-
-
-
-
-
-
-
-
 
 def create(request):
     return render(request, 'game/create.html')
