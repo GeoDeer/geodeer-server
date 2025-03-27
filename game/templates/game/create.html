@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -21,10 +22,10 @@
     .btn-coord, .btn-save-pin { background-color: var(--vibrant-orange); color: var(--white); border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; margin-right: 5px; }
   
 
-   /* SAĞ ALTTA AÇILIR/KAPANIR PANEL */
+
    .game-info-panel {
       position: absolute;
-      bottom: 60px; /* Footer'ın üzerinde görünecek şekilde */
+      bottom: 60px; 
       right: 0;
       width: 260px;
       background-color: var(--white);
@@ -32,14 +33,14 @@
       border-top-left-radius: 8px;
       box-shadow: -2px -2px 6px rgba(0,0,0,0.2);
       transition: transform 0.3s ease;
-      z-index: 999; /* Haritanın üstünde */
+      z-index: 999; 
     }
-    /* Kapalı durum */
+
     .collapsed {
       transform: translateX(100%);
     }
 
-    /* Panelin sol kenarında ok (handle) */
+
     .toggle-handle {
       position: absolute;
       left: -30px;
@@ -60,7 +61,7 @@
       background-color: var(--vibrant-orange);
     }
 
-    /* Panel Başlığı */
+
     .game-info-panel h2 {
       background-color: var(--dark-green);
       color: #fff;
@@ -70,7 +71,7 @@
       border-top-left-radius: 6px;
     }
 
-    /* Panel İçerik */
+
     .game-info-panel .info-content {
       padding: 10px;
     }
@@ -91,7 +92,7 @@
       margin-bottom: 8px;
     }
 
-    /* Save Game Butonu */
+
     .save-game-btn {
       background-color: var(--vibrant-orange);
       color: var(--white);
@@ -109,8 +110,7 @@
       opacity: 0.9;
     }
 
-
-    .search-bar { position: absolute; top: 50px; right: 10px; background: var(--white); padding: 8px; border-radius: 4px; box-shadow: 0 0 6px rgba(0,0,0,0.3); z-index: 1000; width: 300px; }
+    .search-bar { position: absolute; top: 70px; right: 10px; background: var(--white); padding: 7px; border-radius: 4px; box-shadow: 0 0 6px rgba(0,0,0,0.3); z-index: 1000; }
     .search-bar input[type="text"] { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; margin-bottom: 8px; }
     .search-bar button { background-color: var(--vibrant-orange); color: var(--white); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
 
@@ -157,11 +157,9 @@
     <div style="color: var(--white);">© 2025 | OpenStreetMap</div>
   </div>
 
-   <!-- Sağ Alt Köşede Açılır/Kapanır Panel -->
- <!-- Sağ Alt Köşede Açılır/Kapanır Panel -->
-  <!-- Başlangıçta AÇIK olsun isterseniz 'collapsed' eklemeyin -->
-  <div id="gameInfoPanel" class="game-info-panel collapsed">
-    <!-- Oku barın sol kenarında gösteriyoruz -->
+
+  <div id="gameInfoPanel" class="game-info-panel">
+
     <div class="toggle-handle" onclick="toggleGamePanel()">
       <span id="arrow">&#10095;</span>
     </div>
@@ -187,11 +185,6 @@
   <script>
     var map = L.map('map', {doubleClickZoom: false}).setView([39.8644, 32.7467], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-
-    const provider = new GeoSearch.OpenStreetMapProvider();
-    const searchControl = new GeoSearch.GeoSearchControl({ provider, style: 'bar' });
-
-    map.addControl(searchControl);
 
     var waypointCount = 1;
     var markers = {};
