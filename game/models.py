@@ -41,23 +41,20 @@ class Waypoint(models.Model):
     
     def create_buffer(self, buffer_distance=5):
         geom = self.waypoint_geom
+    
         if geom.srid is None:
             raise ValueError("SRID not defined.")
 
-        if geom.srid == 4326:
-            geom_proj = GEOSGeometry(geom.wkt, srid=4326)
-
-            geom_proj.transform(3857)
-            buff = geom_proj.buffer(buffer_distance)
-            
-            buff.transform(4326)
-        else:
-            buff = geom.buffer(buffer_distance)
+        geom_proj = GEOSGeometry(geom.wkt, geom.srid)
+        geom_proj.transform(3857)
+        
+        buff = geom_proj.buffer(buffer_distance, quadsegs=8)  
+        buff.transform(4326)
 
         return buff
 
     def save(self, *args, **kwargs):
-        self.waypoint_buffer  = self.create_buffer(buffer_distance=5)
+        self.waypoint_buffer = self.create_buffer(buffer_distance=5)
         super().save(*args, **kwargs)
     
 class UserLocation(models.Model):
