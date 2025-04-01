@@ -1,4 +1,5 @@
 from django.contrib.gis.db import models
+from django.contrib.gis.geos import GEOSGeometry
 
 class User(models.Model):
     user_id = models.BigAutoField(primary_key=True)
@@ -33,9 +34,31 @@ class Waypoint(models.Model):
     answer = models.TextField()
     ques_dif_level = models.FloatField()
     waypoint_geom = models.PointField()
+    waypoint_buffer = models.PolygonField(null=True, blank=True)
 
     def __str__(self):
         return self.waypoint_name
+    
+    def create_buffer(self, buffer_distance=5):
+        geom = self.waypoint_geom
+        if geom.srid is None:
+            raise ValueError("SRID not defined.")
+
+        if geom.srid == 4326:
+            geom_proj = GEOSGeometry(geom.wkt, srid=4326)
+
+            geom_proj.transform(3857)
+            buff = geom_proj.buffer(buffer_distance)
+            
+            buff.transform(4326)
+        else:
+            buff = geom.buffer(buffer_distance)
+
+        return buff
+
+    def save(self, *args, **kwargs):
+        self.waypoint_buffer  = self.create_buffer(buffer_distance=5)
+        super().save(*args, **kwargs)
     
 class UserLocation(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='locations')
