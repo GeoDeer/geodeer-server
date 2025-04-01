@@ -120,6 +120,7 @@
 
   <!-- Subheader Section -->
   <div id="subheader">
+    <!-- location_name ve remaining_time view'da tanımlı değilse, kaldırabilirsiniz -->
     <div>{{ location_name }}</div>
     <div>Remaining Time: {{ remaining_time }}</div>
   </div>
@@ -154,10 +155,8 @@
 
   <!-- Footer Section -->
   <div id="footer">
-    <button >Back to Main Menu</button>
-    <button >Show the Results</button>
-    {% comment %} <button onclick="window.location.href='{% url 'main_menu' %}'">Back to Main Menu</button>
-    <button onclick="window.location.href='{% url 'results' %}'">Show the Results</button> {% endcomment %}
+    <button>Back to Main Menu</button>
+    <button>Show the Results</button>
   </div>
 
   <!-- Leaflet JS (CDN) -->
@@ -180,7 +179,7 @@
     var polylines = {};
   
     {% for player in players %}
-      var latlng = [{{ player.lat }}, {{ player.lng }}];
+      var latlng = [{{ player.lat }}, {{ player.lon }}]; // "lng" -> "lon"
       markers["{{ player.id }}"] = L.marker(latlng, { icon: getIcon("{{ player.icon }}") })
           .addTo(map)
           .bindTooltip("{{ player.name }}", {
@@ -189,18 +188,18 @@
             offset: [0, -50]
           });
   
-          var pathCoords = [
-          {% for point in player.path %}
-            [{{ point.lat }}, {{ point.lng }}],
-          {% endfor %}
-        ];
-        polylines["{{ player.id }}"] = L.polyline(pathCoords, { 
+      var pathCoords = [
+        {% for point in player.path %}
+          [{{ point.lat }}, {{ point.lon }}], // "lng" -> "lon"
+        {% endfor %}
+      ];
+      polylines["{{ player.id }}"] = L.polyline(pathCoords, { 
           color: "{{ player.icon }}",
           weight: 5,
           dashArray: "10, 10",
           className: "polyline-shadow"
-        }).addTo(map);
-      {% endfor %}
+      }).addTo(map);
+    {% endfor %}
   
     function updateMarkers() {
       fetch(window.location.href, {
@@ -209,21 +208,51 @@
       .then(response => response.json())
       .then(data => {
         data.players.forEach(function(player) {
-          if (markers[player.id] && player.lat && player.lng) {
-            markers[player.id].setLatLng([player.lat, player.lng]);
+          if (markers[player.id] && player.lat && player.lon) {  // "lng" -> "lon"
+            markers[player.id].setLatLng([player.lat, player.lon]);
           }
           if (polylines[player.id] && player.path) {
             var newCoords = player.path.map(function(pt) {
-              return [pt.lat, pt.lng];
+              return [pt.lat, pt.lon];  // "lng" -> "lon"
             });
             polylines[player.id].setLatLngs(newCoords);
           }
         });
       })
-      .catch(error => console.error('Locaiton update error:', error));
+      .catch(error => console.error('Location update error:', error));
     }
   
     setInterval(updateMarkers, 3000);
+
+    var waypointMarkers = {};
+    var waypoints = {{ waypoints|safe }};
+
+    waypoints.forEach(function(wp) {
+      var markerColor = wp.marker_color; 
+
+      var markerIcon = L.divIcon({
+        html: `<div style="
+                  background-color: ${markerColor};
+                  width: 50px;
+                  height: 50px;
+                  border-radius: 50%;
+                  border: 2px solid #000;
+                  box-shadow: 2px 2px 3px rgba(0,0,0,0.7);
+                "></div>`,
+        className: '',
+        iconSize: [50, 50],
+        iconAnchor: [25, 25],
+        popupAnchor: [0, -25]
+      });
+
+      waypointMarkers[wp.id] = L.marker([wp.lat, wp.lon], { icon: markerIcon }) 
+        .addTo(map)
+        .bindTooltip(wp.label, {
+          permanent: true,
+          direction: 'top',
+          offset: [0, -25]
+        });
+    });
   </script>
 </body>
 </html>

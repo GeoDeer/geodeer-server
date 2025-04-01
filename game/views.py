@@ -62,39 +62,64 @@ def register_view(request):
 def create(request):
     return render(request, 'game/create.html')
 
+def ordinal(n):
+    if 11 <= (n % 100) <= 13:
+        suffix = 'th'
+    else:
+        suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')
+    return str(n) + suffix
+
 def monitor(request, pk):
     game = get_object_or_404(Game, pk=pk)
 
     user_scores = UserScore.objects.filter(game=game).select_related('user')
-    
     players = []
     for score in user_scores:
         uid = score.user.user_id
-        
-        user_locs = list(UserLocation.objects.filter(game=game, user=score.user).order_by('-pk')[:6])
+        user_locs = list(UserLocation.objects.filter(game=game, user=score.user).order_by('-pk')[:10])
         user_locs.reverse()  
-        
         latest = user_locs[-1] if user_locs else None
-       
-        path = [{'lat': loc.lat, 'lng': loc.lon} for loc in user_locs]
-        
+        path = [{'lat': loc.lat, 'lon': loc.lon} for loc in user_locs]  
         player = {
             'id': uid,
             'name': score.user.username,
             'score': score.total_score,
             'lat': latest.lat if latest else None,
-            'lng': latest.lon if latest else None,
+            'lon': latest.lon if latest else None,  
             'path': path,
         }
         players.append(player)
-   
+
     sorted_players = sorted(players, key=lambda p: p['id'])
     available_colors = ['cyan', 'red', 'purple', 'yellow']
-    
     for i, player in enumerate(sorted_players):
         player['icon'] = available_colors[i % len(available_colors)]
-    
+
+    waypoints_qs = game.waypoints.all().order_by('waypoint_id')
+    waypoints = []
+    for index, wp in enumerate(waypoints_qs):
+        if index == 0:
+            label = "Start Location"
+            marker_color = "#296B45"
+        else:
+            label = f"{ordinal(index)} waypoint"
+            marker_color = "#B3D8E7"
+        buffer_coords = list(wp.waypoint_buffer.coords[0]) if wp.waypoint_buffer else []
+        waypoints.append({
+            'id': wp.waypoint_id,
+            'name': wp.waypoint_name,
+            'lat': wp.lat,
+            'lon': wp.lon, 
+            'label': label,
+            'marker_color': marker_color,
+            'buffer': buffer_coords,
+        })
+
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        return JsonResponse({'players': sorted_players})
+        return JsonResponse({'players': sorted_players, 'waypoints': waypoints})
     
-    return render(request, 'game/monitor.html', {'players': sorted_players, 'game': game})
+    return render(request, 'game/monitor.html', {
+        'players': sorted_players,
+        'game': game,
+        'waypoints': waypoints
+    })
