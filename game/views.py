@@ -102,7 +102,7 @@ def monitor(request, pk):
             label = "Start Location"
             marker_color = "#296B45"
         else:
-            label = f"{ordinal(index)} waypoint"
+            label = f"{ordinal(index)} Waypoint"
             marker_color = "#B3D8E7"
         buffer_coords = list(wp.waypoint_buffer.coords[0]) if wp.waypoint_buffer else []
         waypoints.append({
