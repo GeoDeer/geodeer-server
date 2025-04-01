@@ -86,8 +86,8 @@ def get_waypoint(request):
 def create_waypoint(request):
     serializer = WaypointSerializer(data=request.data)
     if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        waypoint = serializer.save()
+        return Response(WaypointSerializer(waypoint).data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET', 'PUT', 'DELETE'])
@@ -104,8 +104,8 @@ def waypoint_detail(request, pk):
     elif request.method == 'PUT':
         serializer = WaypointSerializer(waypoint, data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
+            waypoint = serializer.save()
+            return Response(WaypointSerializer(waypoint).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     elif request.method == 'DELETE':
