@@ -71,9 +71,18 @@ def ordinal(n):
 
 def monitor(request, pk):
     game = get_object_or_404(Game, pk=pk)
+    
+    if request.method == "POST" and request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        player_id = request.POST.get('player_id')
+        user = get_object_or_404(User, user_id=player_id)
+        score = get_object_or_404(UserScore, game=game, user=user)
+        score.is_disqualified = True
+        score.save()
+        return JsonResponse({"status": "success"})
 
     user_scores = UserScore.objects.filter(game=game).select_related('user')
     players = []
+    
     for score in user_scores:
         uid = score.user.user_id
         user_locs = list(UserLocation.objects.filter(game=game, user=score.user).order_by('-pk')[:10])
@@ -87,11 +96,13 @@ def monitor(request, pk):
             'lat': latest.lat if latest else None,
             'lon': latest.lon if latest else None,  
             'path': path,
+            'disqualified': score.is_disqualified
         }
         players.append(player)
 
     sorted_players = sorted(players, key=lambda p: p['id'])
     available_colors = ['cyan', 'red', 'purple', 'yellow']
+    
     for i, player in enumerate(sorted_players):
         player['icon'] = available_colors[i % len(available_colors)]
 
