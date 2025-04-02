@@ -2,23 +2,17 @@ from pathlib import Path
 import environ
 import os
 
-# Proje ana dizinini belirleme
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# environ modülünü başlat
 env = environ.Env()
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))  # .env dosyasını yükleme
 
-# Güvenlik Anahtarı
 SECRET_KEY = env("SECRET_KEY")
 
-# Debug Modu
 DEBUG = env.bool("DEBUG", default=False)
 
-# İzin verilen hostlar
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["127.0.0.1", "localhost"])
 
-# Uygulamalar
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -64,7 +58,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'GeoDeer.wsgi.application'
 
-# Veritabanı Ayarları
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
@@ -76,7 +69,6 @@ DATABASES = {
     }
 }
 
-# Şifre Doğrulama
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -84,17 +76,14 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Uluslararasılaştırma
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Statik Dosyalar
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'game/static'),
 ]
 
-# Varsayılan birincil anahtar alanı türü
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

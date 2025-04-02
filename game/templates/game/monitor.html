@@ -4,10 +4,8 @@
 <head>
   <meta charset="UTF-8" />
   <title>GeoDeer - A Map-Based Treasure Hunt Game</title>
-
   <!-- Leaflet CSS (CDN) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
-
   <style>
     :root {
       --dark-green: #296B45;
@@ -71,18 +69,17 @@
     #footer button:hover {
       opacity: 0.9;
     }
-    /* Güncellenmiş .game-info stili */
     .game-info {
       position: absolute;
       top: 80px;
       left: 20px;
       background: var(--white);
-      padding: 20px; 
+      padding: 20px;
       border-radius: 10px;
-      width: 350px; 
+      width: 350px;
       box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
       z-index: 1000;
-      font-size: 18px; 
+      font-size: 18px;
     }
     .game-info table {
       border-collapse: collapse;
@@ -92,9 +89,9 @@
     }
     .game-info th, .game-info td {
       border: 2px solid var(--black);
-      padding: 10px; 
+      padding: 10px;
       text-align: center;
-      font-size: 18px; 
+      font-size: 18px;
     }
     .disqualify {
       background-color: var(--vibrant-orange);
@@ -112,7 +109,6 @@
       filter: drop-shadow(4px 4px 6px rgba(0, 0, 0, 0.7));
     }
   </style>
-  
 </head>
 <body>
   <!-- Header Section -->
@@ -123,7 +119,6 @@
 
   <!-- Subheader Section -->
   <div id="subheader">
-    <!-- location_name ve remaining_time view'da tanımlı değilse, kaldırabilirsiniz -->
     <div>{{ location_name }}</div>
     <div>Remaining Time: {{ remaining_time }}</div>
   </div>
@@ -139,11 +134,11 @@
           <th>Actions</th>
         </tr>
         {% for player in players %}
-        <tr>
+        <tr {% if player.disqualified %} style="text-decoration: line-through;" {% endif %}>
           <td>{{ player.name }}</td>
           <td>{{ player.score }}</td>
           <td>
-            <button class="disqualify" data-player-id="{{ player.id }}">
+            <button class="disqualify" data-player-id="{{ player.id }}" {% if player.disqualified %} disabled {% endif %}>
               Disqualify
             </button>
           </td>
@@ -191,7 +186,7 @@
   
       var pathCoords = [
         {% for point in player.path %}
-          [{{ point.lat }}, {{ point.lon }}], 
+          [{{ point.lat }}, {{ point.lon }}],
         {% endfor %}
       ];
       polylines["{{ player.id }}"] = L.polyline(pathCoords, { 
@@ -219,7 +214,6 @@
               delete polylines[player.id];
             }
           } else {
-
             if (markers[player.id] && player.lat && player.lon) { 
               markers[player.id].setLatLng([player.lat, player.lon]);
             }
@@ -234,7 +228,8 @@
       })
       .catch(error => console.error('Location update error:', error));
     }
-  
+    
+    updateMarkers();
     setInterval(updateMarkers, 3000);
 
     document.querySelectorAll('.disqualify').forEach(function(button) {
