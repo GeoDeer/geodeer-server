@@ -83,6 +83,7 @@ class UserScore(models.Model):
     time_score = models.FloatField()
     ques_score = models.FloatField()
     total_score = models.FloatField()
+    is_disqualified = models.BooleanField(default=False)
 
     def __str__(self):
         return self.user
