@@ -31,7 +31,6 @@ INSTALLED_APPS = [
     'mobile',
     'rest_framework',
     'rest_framework_gis',
-    'channels',
 ]
 
 MIDDLEWARE = [
