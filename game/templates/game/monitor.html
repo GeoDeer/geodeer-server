@@ -158,10 +158,8 @@
     <button>Back to Main Menu</button>
     <button>Show the Results</button>
   </div>
-
-  <!-- Leaflet JS (CDN) -->
+  
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
-
   <script>
     var map = L.map('map').setView([39.8644, 32.7467], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
@@ -179,7 +177,7 @@
     var polylines = {};
   
     {% for player in players %}
-      var latlng = [{{ player.lat }}, {{ player.lon }}]; // "lng" -> "lon"
+      var latlng = [{{ player.lat }}, {{ player.lon }}]; 
       markers["{{ player.id }}"] = L.marker(latlng, { icon: getIcon("{{ player.icon }}") })
           .addTo(map)
           .bindTooltip("{{ player.name }}", {
@@ -190,7 +188,7 @@
   
       var pathCoords = [
         {% for point in player.path %}
-          [{{ point.lat }}, {{ point.lon }}], // "lng" -> "lon"
+          [{{ point.lat }}, {{ point.lon }}], 
         {% endfor %}
       ];
       polylines["{{ player.id }}"] = L.polyline(pathCoords, { 
@@ -208,12 +206,12 @@
       .then(response => response.json())
       .then(data => {
         data.players.forEach(function(player) {
-          if (markers[player.id] && player.lat && player.lon) {  // "lng" -> "lon"
+          if (markers[player.id] && player.lat && player.lon) { 
             markers[player.id].setLatLng([player.lat, player.lon]);
           }
           if (polylines[player.id] && player.path) {
             var newCoords = player.path.map(function(pt) {
-              return [pt.lat, pt.lon];  // "lng" -> "lon"
+              return [pt.lat, pt.lon];  
             });
             polylines[player.id].setLatLngs(newCoords);
           }

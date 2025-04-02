@@ -97,6 +97,7 @@ def monitor(request, pk):
 
     waypoints_qs = game.waypoints.all().order_by('waypoint_id')
     waypoints = []
+    
     for index, wp in enumerate(waypoints_qs):
         if index == 0:
             label = "Start Location"
@@ -104,7 +105,7 @@ def monitor(request, pk):
         else:
             label = f"{ordinal(index)} Waypoint"
             marker_color = "#B3D8E7"
-        buffer_coords = list(wp.waypoint_buffer.coords[0]) if wp.waypoint_buffer else []
+        
         waypoints.append({
             'id': wp.waypoint_id,
             'name': wp.waypoint_name,
@@ -112,7 +113,6 @@ def monitor(request, pk):
             'lon': wp.lon, 
             'label': label,
             'marker_color': marker_color,
-            'buffer': buffer_coords,
         })
 
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
