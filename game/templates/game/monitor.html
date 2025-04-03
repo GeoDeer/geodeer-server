@@ -325,39 +325,37 @@
     // ECharts Hız Grafiği
     const chart = echarts.init(document.getElementById('speed-chart'));
 
-  // Örnek dummy veriler (şu an için sadece grafik görünmesi için)
-  const dummyPlayerNames = ['Ayşe', 'Burak', 'Cem', 'Deniz'];
-  const dummyPlayerSpeeds = [3.2, 5.1, 2.9, 4.4];
+    // Örnek dummy veriler (şu an için sadece grafik görünmesi için)
+    const dummyPlayerNames = ['Ayşe', 'Burak', 'Cem', 'Deniz'];
+    const dummyPlayerSpeeds = [3.2, 5.1, 2.9, 4.4];
 
-  function updateSpeedChart() {
-    const option = {
-      title: { text: 'Current Player Speeds (m/s)', left: 'center' },
-      tooltip: { trigger: 'item' },
-      xAxis: {
-        type: 'category',
-        data: dummyPlayerNames
-      },
-      yAxis: {
-        type: 'value',
-        min: 0,
-        max: 10,
-        name: 'Speed (m/s)'
-      },
-      series: [{
-        name: 'Speed',
-        type: 'bar',
-        data: dummyPlayerSpeeds,
-        itemStyle: {
-          color: '#4CAF50'
-        }
-      }]
-    };
-    chart.setOption(option);
-  }
+    function updateSpeedChart() {
+      const option = {
+        title: { text: 'Current Player Speeds (m/s)', left: 'center' },
+        tooltip: { trigger: 'item' },
+        xAxis: {
+          type: 'category',
+          data: dummyPlayerNames
+        },
+        yAxis: {
+          type: 'value',
+          min: 0,
+          max: 10,
+          name: 'Speed (m/s)'
+        },
+        series: [{
+          name: 'Speed',
+          type: 'bar',
+          data: dummyPlayerSpeeds,
+          itemStyle: {
+            color: '#4CAF50'
+          }
+        }]
+      };
+      chart.setOption(option);
+    }
 
-  updateSpeedChart();
-
-
+    updateSpeedChart();
   </script>
 </body>
 </html>
