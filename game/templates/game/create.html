@@ -6,26 +6,125 @@
   <title>GeoDeer - A Map-Based Treasure Hunt Game</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Times New Roman", Times, serif; }
-    :root { --dark-green: #296B45; --white: #FFFFFF; --black: #000000; --gray-green: #A7B8A6; --soft-blue: #B3D8E7; --vibrant-orange: #FF7F50; }
-    html, body { width: 100%; height: 100%; background-color: var(--gray-green); display: flex; flex-direction: column; }
-    #header { background-color: var(--dark-green); color: var(--white); display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; }
-    #main { flex: 1; display: flex; overflow: hidden; min-height: 0; }
-    #sidebar { width: 400px; background-color: var(--white); border-right: 2px solid #ccc; padding: 10px 20px; overflow-y: auto; }
-    .waypoint-box { border: 1px solid var(--soft-blue); border-radius: 4px; padding: 10px; margin-bottom: 12px; background-color: var(--soft-blue); }
-    .waypoint-box label { font-weight: bold; display: block; margin-bottom: 3px; color: var(--black); }
-    .waypoint-box input[type="text"] { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; margin-bottom: 8px; }
-    .save-locations-btn { background-color: var(--vibrant-orange); color: var(--white); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 1rem; margin-top: 10px; }
-    #map { flex: 1; min-height: 400px; }
-    #footer { background-color: var(--dark-green); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; }
-    #footer button { background-color: var(--vibrant-orange); color: var(--white); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
-    .btn-coord, .btn-save-pin { background-color: var(--vibrant-orange); color: var(--white); border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; margin-right: 5px; }
-  
-
-
-   .game-info-panel {
+    * {
+      margin: 0; 
+      padding: 0; 
+      box-sizing: border-box; 
+      font-family: "Times New Roman", Times, serif;
+    }
+    :root {
+      --dark-green: #296B45;
+      --white: #FFFFFF;
+      --black: #000000;
+      --gray-green: #A7B8A6;
+      --soft-blue: #B3D8E7;
+      --vibrant-orange: #FF7F50;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: var(--gray-green);
+      display: flex;
+      flex-direction: column;
+    }
+    #header {
+      background-color: var(--dark-green);
+      color: var(--white);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+    }
+    #main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      min-height: 0;
+    }
+    #sidebar {
+      width: 400px;
+      background-color: var(--white);
+      border-right: 2px solid #ccc;
+      padding: 10px 20px;
+      overflow-y: auto;
+    }
+    #sidebar h2 {
+      margin-bottom: 10px;
+    }
+    .waypoint-box {
+      border: 1px solid var(--soft-blue);
+      border-radius: 4px;
+      padding: 10px;
+      margin-bottom: 12px;
+      background-color: var(--soft-blue);
+    }
+    .waypoint-box h3 {
+      margin-bottom: 8px;
+    }
+    .waypoint-box label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 3px;
+      color: var(--black);
+      font-size: 0.9rem;
+    }
+    .waypoint-box input[type="text"],
+    .waypoint-box input[type="number"],
+    .waypoint-box input[type="range"] {
+      width: 100%;
+      padding: 6px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+    }
+    .waypoint-box input[type="range"] {
+      cursor: pointer;
+    }
+    .btn-coord, .btn-save-pin {
+      background-color: var(--vibrant-orange);
+      color: var(--white);
+      border: none;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      margin-right: 5px;
+      margin-top: 5px;
+    }
+    .save-locations-btn {
+      background-color: var(--vibrant-orange);
+      color: var(--white);
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+      margin-top: 10px;
+    }
+    #map {
+      flex: 1;
+      min-height: 400px;
+    }
+    #footer {
+      background-color: var(--dark-green);
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #footer button {
+      background-color: var(--vibrant-orange);
+      color: var(--white);
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .game-info-panel {
       position: absolute;
-      bottom: 60px; 
+      bottom: 60px;
       right: 0;
       width: 260px;
       background-color: var(--white);
@@ -33,14 +132,11 @@
       border-top-left-radius: 8px;
       box-shadow: -2px -2px 6px rgba(0,0,0,0.2);
       transition: transform 0.3s ease;
-      z-index: 999; 
+      z-index: 999;
     }
-
     .collapsed {
       transform: translateX(100%);
     }
-
-
     .toggle-handle {
       position: absolute;
       left: -30px;
@@ -60,8 +156,6 @@
     .toggle-handle:hover {
       background-color: var(--vibrant-orange);
     }
-
-
     .game-info-panel h2 {
       background-color: var(--dark-green);
       color: #fff;
@@ -70,8 +164,6 @@
       padding: 10px;
       border-top-left-radius: 6px;
     }
-
-
     .game-info-panel .info-content {
       padding: 10px;
     }
@@ -91,8 +183,6 @@
       font-size: 0.9rem;
       margin-bottom: 8px;
     }
-
-
     .save-game-btn {
       background-color: var(--vibrant-orange);
       color: var(--white);
@@ -109,13 +199,33 @@
     .save-game-btn:hover {
       opacity: 0.9;
     }
-
-    .search-bar { position: absolute; top: 70px; right: 10px; background: var(--white); padding: 7px; border-radius: 4px; box-shadow: 0 0 6px rgba(0,0,0,0.3); z-index: 1000; }
-    .search-bar input[type="text"] { width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; margin-bottom: 8px; }
-    .search-bar button { background-color: var(--vibrant-orange); color: var(--white); border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
-
-
-
+    .search-bar {
+      position: absolute;
+      top: 70px;
+      right: 10px;
+      background: var(--white);
+      padding: 7px;
+      border-radius: 4px;
+      box-shadow: 0 0 6px rgba(0,0,0,0.3);
+      z-index: 1000;
+    }
+    .search-bar input[type="text"] {
+      width: 100%;
+      padding: 6px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+    }
+    .search-bar button {
+      background-color: var(--vibrant-orange);
+      color: var(--white);
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
   </style>
 </head>
 <body>
@@ -125,45 +235,96 @@
   </div>
 
   <div id="main">
+    <!-- SOL SİDEBAR -->
     <div id="sidebar">
       <h2>Waypoint Locations</h2>
-
+      
+      <!-- 1. Waypoint -->
       <div class="waypoint-box" data-index="1">
         <h3>1. Waypoint</h3>
-        <label>Name:</label><input type="text" class="wp-name" placeholder="Geomeclas (Engineering)" />
-        <label>Question #1:</label><input type="text" placeholder="This is a START point" />
-        <label>Answers:</label><input type="text" placeholder="No question" />
-        <label>Year:</label><input type="text" placeholder="1982" />
-        <label>Area:</label><input type="text" placeholder="For future leaders..." />
+        <label>Waypoint Name:</label>
+        <input type="text" class="wp-name" value="Geomatics Engineering" />
+
+        <label>This is a 'START' point</label>
+        <input type="text" value="A place where creativity flourishes, and students learn to express themselves through art." />
+
+        <label>No Question</label>
+        <input type="text" placeholder="No question" disabled />
+
+        <label>Question Difficulty Level (1-10):</label>
+        <input type="range" min="1" max="10" value="1" class="difficulty-slider" />
+
         <button class="btn-coord" onclick="showCoordinates(1)">Show the Coordinates</button>
         <button class="btn-save-pin" onclick="savePin(1)">Save</button>
       </div>
 
-      <button class="save-locations-btn" onclick="addNewWaypoint()">Add New Location</button>
-    </div>
+      <!-- 2. Waypoint -->
+      <div class="waypoint-box" data-index="2">
+        <h3>2. Waypoint</h3>
+        <label>Waypoint Name:</label>
+        <input type="text" class="wp-name" value="Fine Arts" />
 
+        <label>Question:</label>
+        <input type="text" value="In which year was this faculty established at Hacettepe University?" />
+
+        <label>Answer:</label>
+        <input type="text" value="1982" />
+
+        <label>Hint:</label>
+        <input type="text" value="A hub for future leaders and business enthusiasts" />
+
+        <label>Question Difficulty Level (1-10):</label>
+        <input type="range" min="1" max="10" value="6" class="difficulty-slider" />
+
+        <button class="btn-coord" onclick="showCoordinates(2)">Show the Coordinates</button>
+        <button class="btn-save-pin" onclick="savePin(2)">Save</button>
+      </div>
+
+      <!-- 3. Waypoint -->
+      <div class="waypoint-box" data-index="3">
+        <h3>3. Waypoint</h3>
+        <label>Waypoint Name:</label>
+        <input type="text" class="wp-name" value="FEAS" />
+
+        <label>Question:</label>
+        <input type="text" value="Which two main disciplines do students study at the Faculty of Economics and Administrative Sciences?" />
+
+        <label>Answer:</label>
+        <input type="text" value="Economics and management sciences." />
+
+        <label>Question Difficulty Level (1-10):</label>
+        <input type="range" min="1" max="10" value="5" class="difficulty-slider" />
+
+        <button class="btn-coord" onclick="showCoordinates(3)">Show the Coordinates</button>
+        <button class="btn-save-pin" onclick="savePin(3)">Save</button>
+      </div>
+
+      <button class="save-locations-btn" onclick="addNewWaypoint()">Add New Location</button>
+      <button class="save-locations-btn">Save Locations</button>
+    </div>
+    <!-- /SOL SİDEBAR -->
+
+    <!-- HARİTA ALANI -->
     <div id="map"></div>
 
-
+    <!-- ARAMA ALANI -->
     <div class="search-bar">
       <input type="text" id="searchInput" placeholder="Search location">
       <button onclick="searchLocation()">Search</button>
     </div>
-
   </div>
 
+  <!-- FOOTER -->
   <div id="footer">
     <button>Back to Main Menu</button>
     <div style="color: var(--white);">© 2025 | OpenStreetMap</div>
   </div>
 
-
+  <!-- SAĞ PANEL -->
   <div id="gameInfoPanel" class="game-info-panel">
-
     <div class="toggle-handle" onclick="toggleGamePanel()">
       <span id="arrow">&#10095;</span>
     </div>
-
     <h2>General Information About Game</h2>
     <div class="info-content">
       <label for="gameName">Game Name:</label>
@@ -179,75 +340,111 @@
       <input type="text" id="time" value="01:00:00" />
 
       <button class="save-game-btn">Save Game</button>
+    </div>
+  </div>
 
+  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
 
   <script>
+    // HARİTA TANIMI
     var map = L.map('map', {doubleClickZoom: false}).setView([39.8644, 32.7467], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
 
-    var waypointCount = 1;
+    var waypointCount = 3; // İlk 3 waypoint hazır geliyor
     var markers = {};
 
+    // Haritaya çift tıklandığında pin ekleme/taşıma
     map.on('dblclick', function(e) {
-      if(markers[waypointCount] && markers[waypointCount].locked) return;
+      if (markers[waypointCount] && markers[waypointCount].locked) return;
       var latlng = e.latlng;
-      if(markers[waypointCount]) { map.removeLayer(markers[waypointCount]); }
+      if (markers[waypointCount]) {
+        map.removeLayer(markers[waypointCount]);
+      }
       var name = document.querySelector('[data-index="'+waypointCount+'"]').querySelector('.wp-name').value || waypointCount + '. WAYPOINT';
       markers[waypointCount] = L.marker(latlng, {draggable:true}).addTo(map).bindPopup(name).openPopup();
       markers[waypointCount].coords = latlng;
+
       markers[waypointCount].on('dragend', function(event){
         markers[waypointCount].coords = event.target.getLatLng();
       });
       markers[waypointCount].on('click', function(){
-        if(markers[waypointCount].locked && confirm('Düzeltmek ister misiniz?')){
+        if (markers[waypointCount].locked && confirm('Düzeltmek ister misiniz?')){
           markers[waypointCount].locked = false;
           markers[waypointCount].dragging.enable();
         }
       });
     });
 
+    // Yeni waypoint ekle
     function addNewWaypoint() {
       waypointCount++;
       var sidebar = document.getElementById('sidebar');
       var waypointBox = document.createElement('div');
       waypointBox.className = 'waypoint-box';
       waypointBox.setAttribute('data-index', waypointCount);
-      waypointBox.innerHTML = `<h3>${waypointCount}. Waypoint</h3><label>Name:</label><input type="text" class="wp-name"/><label>Question #1:</label><input type="text"/><label>Answers:</label><input type="text"/><label>Area:</label><input type="text"/><button class="btn-coord" onclick="showCoordinates(${waypointCount})">Show the Coordinates</button><button class="btn-save-pin" onclick="savePin(${waypointCount})">Save</button>`;
-      sidebar.insertBefore(waypointBox, sidebar.querySelector('.save-locations-btn'));
+
+      waypointBox.innerHTML = `
+        <h3>${waypointCount}. Waypoint</h3>
+        <label>Waypoint Name:</label>
+        <input type="text" class="wp-name" placeholder="Enter waypoint name" />
+
+        <label>Question:</label>
+        <input type="text" placeholder="Enter your question" />
+
+        <label>Answer:</label>
+        <input type="text" placeholder="Enter the answer" />
+
+        <label>Hint:</label>
+        <input type="text" placeholder="Enter a hint" />
+
+        <label>Question Difficulty Level (1-10):</label>
+        <input type="range" min="1" max="10" value="5" class="difficulty-slider" />
+
+        <button class="btn-coord" onclick="showCoordinates(${waypointCount})">Show the Coordinates</button>
+        <button class="btn-save-pin" onclick="savePin(${waypointCount})">Save</button>
+      `;
+
+      // "Save Locations" butonundan önce ekliyoruz
+      var saveLocationsBtn = sidebar.querySelector('.save-locations-btn:last-of-type');
+      sidebar.insertBefore(waypointBox, saveLocationsBtn);
     }
 
+    // Koordinatları göster
     function showCoordinates(index) {
-      if(markers[index]) alert('Coordinates: ' + markers[index].coords.lat.toFixed(5) + ', ' + markers[index].coords.lng.toFixed(5));
-      else alert('Please double-click on the map to set the location for waypoint ' + index);
+      if (markers[index]) {
+        alert('Coordinates: ' + markers[index].coords.lat.toFixed(5) + ', ' + markers[index].coords.lng.toFixed(5));
+      } else {
+        alert('Please double-click on the map to set the location for waypoint ' + index);
+      }
     }
 
+    // Pin kaydetme ve kilitleme
     function savePin(index){
-      if(markers[index]){
+      if (markers[index]){
         markers[index].locked = true;
         markers[index].dragging.disable();
         alert('Pin saved and locked.');
       }
     }
 
-      // Existing scripts remain unchanged
-
-      function toggleGamePanel() {
+    // Sağ panel aç/kapa
+    function toggleGamePanel() {
       const panel = document.getElementById("gameInfoPanel");
       const arrow = document.getElementById("arrow");
       panel.classList.toggle("collapsed");
       arrow.innerHTML = panel.classList.contains("collapsed") ? '&#10095;' : '&#10094;';
     }
 
-  
+    // Arama
     function searchLocation(){
       const query = document.getElementById('searchInput').value;
       fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`)
         .then(response => response.json())
         .then(data => {
-          if(data[0]){
+          if (data[0]){
             map.setView([data[0].lat, data[0].lon], 16);
-          }else{
+          } else {
             alert('Location not found');
           }
         });
