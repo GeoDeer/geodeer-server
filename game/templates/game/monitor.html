@@ -108,6 +108,23 @@
     .polyline-shadow {
       filter: drop-shadow(4px 4px 6px rgba(0, 0, 0, 0.7));
     }
+
+
+
+    #speed-chart {
+      position: absolute;
+      top: 80px;
+      right: 20px;
+      width: 400px;
+      height: 300px;
+      background-color: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+      z-index: 1000;
+    }
+
+
+
   </style>
 </head>
 <body>
@@ -149,6 +166,7 @@
 
     <!-- Map Container -->
     <div id="map"></div>
+    <div id="speed-chart"></div>
   </div>
 
   <!-- Footer Section -->
@@ -158,6 +176,9 @@
   </div>
   
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+
+
   <script>
     var map = L.map('map').setView([39.8644, 32.7467], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
@@ -299,6 +320,33 @@
           offset: [0, -25]
         });
     });
+
+
+    // ECharts Hız Grafiği
+    const chart = echarts.init(document.getElementById('speed-chart'));
+
+    function updateSpeedChart() {
+      const names = players.map(p => p.name);
+      const speeds = players.map(p => p.speed);
+
+      const option = {
+        title: { text: 'Current Player Speeds (m/s)', left: 'center' },
+        tooltip: { trigger: 'item' },
+        xAxis: { type: 'category', data: names },
+        yAxis: { type: 'value', min: 0, max: 10, name: 'Speed (m/s)' },
+        series: [{
+          name: 'Speed',
+          type: 'bar',
+          data: speeds,
+          itemStyle: { color: '#4CAF50' }
+        }]
+      };
+      chart.setOption(option);
+    }
+
+    updateSpeedChart();
+
+    
   </script>
 </body>
 </html>
