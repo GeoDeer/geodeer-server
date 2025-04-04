@@ -10,8 +10,6 @@ from .models import User
 def auth(request):
     return render(request, 'game/auth.html')
 
-def auth(request):
-    return render(request, 'game/auth.html')
 
 def login_view(request):
     if request.method == "POST":
