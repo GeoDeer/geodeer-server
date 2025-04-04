@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Main Menu</title>
+  <style>
+    /* Reset and Base Styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Times New Roman", Times, serif;
+    }
+
+    /* Color Variables */
+    :root {
+      --dark-green: #296B45;
+      --white: #FFFFFF;
+      --black: #000000;
+      --gray-green: #A7B8A6;
+      --soft-blue: #B3D8E7;
+      --vibrant-orange: #FF7F50;
+    }
+
+    /* HTML and Body Settings */
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: var(--gray-green);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    #header {
+      background-color: var(--dark-green);
+      color: var(--white);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+    }
+
+    #header h1 {
+      font-size: 1.5rem;
+    }
+
+    #header .header-right {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    #header .header-right a {
+      color: var(--white);
+      text-decoration: none;
+      font-size: 1rem;
+      transition: opacity 0.3s;
+    }
+
+    #header .header-right a:hover {
+      opacity: 0.8;
+    }
+
+    /* Main Content */
+    #main-content {
+      display: flex;
+      flex: 1;
+      padding: 20px;
+      gap: 20px;
+    }
+
+    /* Left Panel (Game Description) */
+    #left-panel {
+      flex: 1;
+      background-color: var(--white);
+      padding: 20px;
+      border-radius: 5px;
+    }
+
+    #left-panel h2 {
+      margin-bottom: 10px;
+    }
+
+    #left-panel p {
+      margin-top: 20px;
+      line-height: 1.5;
+    }
+
+    #left-panel ul {
+      margin-top: 10px;
+      list-style-type: disc;
+      padding-left: 20px;
+    }
+
+    /* Right Panel (My Games) */
+    #right-panel {
+      flex: 1.2;
+      background-color: var(--white);
+      padding: 20px;
+      border-radius: 5px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #right-panel h2 {
+      margin-bottom: 10px;
+    }
+
+    #right-panel p {
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    /* Buttons */
+    button,
+    .btn {
+      background-color: var(--vibrant-orange);
+      color: var(--white);
+      border: none;
+      padding: 8px 14px;
+      cursor: pointer;
+      font-size: 1rem;
+      border-radius: 4px;
+      margin-right: 10px;
+      margin-bottom: 10px;
+      transition: opacity 0.3s;
+    }
+
+    button:hover,
+    .btn:hover {
+      opacity: 0.8;
+    }
+
+    /* Games Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    table th, table td {
+      border: 1px solid var(--gray-green);
+      padding: 10px;
+      text-align: left;
+    }
+
+    table th {
+      background-color: var(--soft-blue);
+    }
+
+    /* Footer */
+    #footer {
+      background-color: var(--dark-green);
+      color: var(--white);
+      text-align: center;
+      padding: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header id="header">
+    <h1>GeoDeer | Treasure Hunt Game</h1>
+    <div class="header-right">
+      <a href="#">Profile</a>
+      <a href="#">Logout</a>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main id="main-content">
+    <!-- Left Panel: Game Description -->
+    <section id="left-panel">
+      <h2>Game Description</h2>
+      <div style="margin-top: 20px; border: 1px solid var(--black); height: 200px; display: flex; align-items: center; justify-content: center;">
+        <span>Video / Image Area</span>
+      </div>
+      <p>
+        GeoDeer | Treasure Hunt Game is a location-based treasure hunt game. Its main purpose is for players to visit specific real-world locations, complete various tasks, and earn rewards. By merging digital and physical experiences, players embark on an interactive, exploration-driven adventure.
+      </p>
+      <ul>
+        <li>Register or log in with your existing account to start the game.</li>
+        <li>Explore the treasure locations marked on the map.</li>
+        <li>Visit designated spots to complete tasks or answer questions.</li>
+        <li>Earn points and virtual treasures by successfully completing tasks.</li>
+        <li>Use your points to progress further or redeem various rewards.</li>
+        <li>Face more challenging tasks and uncover new discoveries as you play.</li>
+      </ul>
+    </section>
+
+    <!-- Right Panel: My Games -->
+    <section id="right-panel">
+      <h2>My Games</h2>
+      <p>Your previously created games are listed here.</p>
+      <div style="margin-bottom: 10px;">
+        <button>Create Game</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Game Name</th>
+            <th>Game ID (for mobile players)</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Game 1</td>
+            <td>12345</td>
+            <td>04/04/2025</td>
+            <td>
+              <button>Start Game</button>
+              <button>Watch Game</button>
+              <button>Results</button>
+              <button>Manage</button>
+              <button>Delete</button>
+            </td>
+          </tr>
+          <tr>
+            <td>Game 2</td>
+            <td>67890</td>
+            <td>05/04/2025</td>
+            <td>
+              <button>Start Game</button>
+              <button>Watch Game</button>
+              <button>Results</button>
+              <button>Manage</button>
+              <button>Delete</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer id="footer">
+    <p>&copy; 2025 GeoDeer | All rights reserved</p>
+  </footer>
+</body>
+</html>
