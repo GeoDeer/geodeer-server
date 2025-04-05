@@ -10,7 +10,7 @@
       margin: 0; 
       padding: 0; 
       box-sizing: border-box; 
-      font-family: "Times New Roman", Times, serif;
+      font-family: "Poppins", Times, serif;
     }
     :root {
       --dark-green: #296B45;
@@ -239,7 +239,7 @@
     <div id="sidebar">
       <h2>Waypoint Locations</h2>
       
-      <!-- Waypoint - 1 (always visible) -->
+      <!-- Waypoint - 1 (always visible, no slider) -->
       <div class="waypoint-box" data-index="1">
         <h3>Waypoint - 1</h3>
         <label>Waypoint Name:</label>
@@ -256,9 +256,11 @@
         <button class="btn-save-pin" onclick="savePin(1)">Save</button>
       </div>
 
-      <!-- Hidden initially, shown after a successful save -->
-      <button id="addWaypointBtn" class="save-locations-btn" style="display: none;" onclick="addNewWaypoint()">Add New Location</button>
-      <button class="save-locations-btn">Save Locations</button>
+      <!-- Container for Add New Location and Add Last Location buttons -->
+      <div id="locationButtons" style="display: flex; gap: 10px; margin-top: 10px;">
+        <button id="addWaypointBtn" class="save-locations-btn" style="display: none;" onclick="addNewWaypoint()">Add New Location</button>
+        <button id="addLastLocationBtn" class="save-locations-btn" style="display: none;" onclick="addLastLocation()">Add Last Location</button>
+      </div>
     </div>
     <!-- /LEFT SIDEBAR -->
 
@@ -333,8 +335,11 @@
       var nameElem = document.querySelector('[data-index="' + waypointCount + '"] .wp-name');
       var name = nameElem ? nameElem.value : (waypointCount + '. WAYPOINT');
 
-      // Create or update the marker with the custom icon
-      markers[waypointCount] = L.marker(latlng, { draggable: true, icon: customIcon }).addTo(map).bindPopup(name).openPopup();
+      // Create or update the marker with the custom icon and update popup to "Waypoint X: waypoint name"
+      markers[waypointCount] = L.marker(latlng, { draggable: true, icon: customIcon })
+                              .addTo(map)
+                              .bindPopup("Waypoint " + waypointCount + ": " + name)
+                              .openPopup();
       markers[waypointCount].coords = latlng;
 
       // Prevent dragging if locked
@@ -359,7 +364,7 @@
       }
     }
 
-    // Save the waypoint (validate fields, location, and update popup name)
+    // Save the waypoint (validate fields, location, update popup name and check difficulty for waypoints > 1)
     function savePin(index) {
       var waypointBox = document.querySelector('[data-index="' + index + '"]');
       var textInputs = waypointBox.querySelectorAll('input[type="text"]');
@@ -372,16 +377,25 @@
         }
       }
 
+      // For waypoints other than 1, check difficulty slider value
+      if (index > 1) {
+        var difficultySlider = waypointBox.querySelector('.difficulty-slider');
+        if (!difficultySlider || parseInt(difficultySlider.value) < 1) {
+          alert("Please select a difficulty level between 1 and 10.");
+          return;
+        }
+      }
+
       // Validate that a location is selected
       if (!markers[index] || !markers[index].coords) {
         alert("Location cannot be saved without selection.");
         return;
       }
 
-      // Update marker popup with the current waypoint name
+      // Update marker popup with the current waypoint name prefixed with "Waypoint X: "
       var nameElem = waypointBox.querySelector('.wp-name');
       var name = nameElem ? nameElem.value : (index + '. WAYPOINT');
-      markers[index].setPopupContent(name);
+      markers[index].setPopupContent("Waypoint " + index + ": " + name);
 
       // Lock the marker and disable text fields
       markers[index].locked = true;
@@ -390,15 +404,25 @@
         textInputs[j].disabled = true;
       }
 
+      // For waypoints > 1, disable the slider as well
+      if (index > 1) {
+        var difficultySlider = waypointBox.querySelector('.difficulty-slider');
+        if(difficultySlider) {
+          difficultySlider.disabled = true;
+        }
+      }
+
       // Show the "Edit" button
       var editBtn = waypointBox.querySelector('.btn-edit');
       editBtn.style.display = 'inline-block';
 
       alert("Waypoint saved successfully.");
+      // Show both "Add New Location" and "Add Last Location" buttons
       document.getElementById('addWaypointBtn').style.display = 'inline-block';
+      document.getElementById('addLastLocationBtn').style.display = 'inline-block';
     }
 
-    // Edit the waypoint (unlock marker and text fields)
+    // Edit the waypoint (unlock marker, text fields and slider)
     function editPin(index) {
       var waypointBox = document.querySelector('[data-index="' + index + '"]');
       var textInputs = waypointBox.querySelectorAll('input[type="text"]');
@@ -412,9 +436,16 @@
       for (var i = 0; i < textInputs.length; i++) {
         textInputs[i].disabled = false;
       }
+      // For waypoints > 1, enable the difficulty slider
+      if (index > 1) {
+        var difficultySlider = waypointBox.querySelector('.difficulty-slider');
+        if(difficultySlider) {
+          difficultySlider.disabled = false;
+        }
+      }
     }
 
-    // Add a new waypoint box (for waypoints 2 to 5)
+    // Add a new waypoint box (for waypoints 2 to 5) with full fields (including Hint)
     function addNewWaypoint() {
       waypointCount++;
       if (waypointCount > 5) {
@@ -435,13 +466,61 @@
         <input type="text" placeholder="Please enter a answer." />
         <label>Hint:</label>
         <input type="text" placeholder="Please enter a hint." />
+
+        <!-- Difficulty slider & value in one line -->
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label style="margin-bottom: 0;">Difficulty Level (1-10): 
+            <span class="difficulty-value">0</span>
+          </label>
+          <input type="range" min="0" max="10" value="0" class="difficulty-slider"
+                 oninput="this.previousElementSibling.querySelector('.difficulty-value').innerText = this.value" />
+        </div>
+
         <button class="btn-coord" onclick="showCoordinates(${waypointCount})">Show the Coordinates</button>
         <!-- EDIT BUTTON (initially hidden) -->
         <button class="btn-edit" onclick="editPin(${waypointCount})" style="display:none;">Edit</button>
         <button class="btn-save-pin" onclick="savePin(${waypointCount})">Save</button>
       `;
-      var addWaypointBtn = document.getElementById('addWaypointBtn');
-      sidebar.insertBefore(waypointBox, addWaypointBtn);
+      var locationButtons = document.getElementById('locationButtons');
+      locationButtons.parentNode.insertBefore(waypointBox, locationButtons);
+    }
+
+    // Add a last waypoint box (for waypoints 2 to 5) with reduced fields (no Hint)
+    function addLastLocation() {
+      waypointCount++;
+      if (waypointCount > 5) {
+        alert("Maximum 5 waypoints!");
+        return;
+      }
+      var sidebar = document.getElementById('sidebar');
+      var waypointBox = document.createElement('div');
+      waypointBox.className = 'waypoint-box';
+      waypointBox.setAttribute('data-index', waypointCount);
+      waypointBox.innerHTML = `
+        <h3>Waypoint - ${waypointCount}</h3>
+        <label>Waypoint Name:</label>
+        <input type="text" class="wp-name" placeholder="Please enter a waypoint name." />
+        <label>Question:</label>
+        <input type="text" placeholder="Please enter a question." />
+        <label>Answer:</label>
+        <input type="text" placeholder="Please enter a answer." />
+
+        <!-- Difficulty slider & value in one line -->
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label style="margin-bottom: 0;">Difficulty Level (1-10): 
+            <span class="difficulty-value">0</span>
+          </label>
+          <input type="range" min="0" max="10" value="0" class="difficulty-slider"
+                 oninput="this.previousElementSibling.querySelector('.difficulty-value').innerText = this.value" />
+        </div>
+
+        <button class="btn-coord" onclick="showCoordinates(${waypointCount})">Show the Coordinates</button>
+        <!-- EDIT BUTTON (initially hidden) -->
+        <button class="btn-edit" onclick="editPin(${waypointCount})" style="display:none;">Edit</button>
+        <button class="btn-save-pin" onclick="savePin(${waypointCount})">Save</button>
+      `;
+      var locationButtons = document.getElementById('locationButtons');
+      locationButtons.parentNode.insertBefore(waypointBox, locationButtons);
     }
 
     // Toggle the right info panel
