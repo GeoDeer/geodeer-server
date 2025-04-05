@@ -81,7 +81,7 @@
     .waypoint-box input[type="range"] {
       cursor: pointer;
     }
-    .btn-coord, .btn-save-pin {
+    .btn-coord, .btn-save-pin, .btn-edit {
       background-color: var(--vibrant-orange);
       color: var(--white);
       border: none;
@@ -235,79 +235,37 @@
   </div>
 
   <div id="main">
-    <!-- SOL SİDEBAR -->
+    <!-- LEFT SIDEBAR -->
     <div id="sidebar">
       <h2>Waypoint Locations</h2>
       
-      <!-- 1. Waypoint -->
+      <!-- Waypoint - 1 (always visible) -->
       <div class="waypoint-box" data-index="1">
-        <h3>1. Waypoint</h3>
+        <h3>Waypoint - 1</h3>
         <label>Waypoint Name:</label>
-        <input type="text" class="wp-name" value="Geomatics Engineering" />
-
-        <label>This is a 'START' point</label>
-        <input type="text" value="A place where creativity flourishes, and students learn to express themselves through art." />
-
-        <label>No Question</label>
-        <input type="text" placeholder="No question" disabled />
-
-        <label>Question Difficulty Level (1-10):</label>
-        <input type="range" min="1" max="10" value="1" class="difficulty-slider" />
+        <input type="text" class="wp-name" placeholder="Please enter a waypoint name." />
+        <label>Double clicks must be made on the map to select a location.</label>
+        <label>Hint:</label>
+        <input type="text" placeholder="Please enter a hint." />
+        <label>NOTE: Waypoint-1 is no question!</label>
+        <label>Press the save button to add a new waypoint.</label>
 
         <button class="btn-coord" onclick="showCoordinates(1)">Show the Coordinates</button>
+        <!-- EDIT BUTTON (initially hidden) -->
+        <button class="btn-edit" onclick="editPin(1)" style="display:none;">Edit</button>
         <button class="btn-save-pin" onclick="savePin(1)">Save</button>
       </div>
 
-      <!-- 2. Waypoint -->
-      <div class="waypoint-box" data-index="2">
-        <h3>2. Waypoint</h3>
-        <label>Waypoint Name:</label>
-        <input type="text" class="wp-name" value="Fine Arts" />
-
-        <label>Question:</label>
-        <input type="text" value="In which year was this faculty established at Hacettepe University?" />
-
-        <label>Answer:</label>
-        <input type="text" value="1982" />
-
-        <label>Hint:</label>
-        <input type="text" value="A hub for future leaders and business enthusiasts" />
-
-        <label>Question Difficulty Level (1-10):</label>
-        <input type="range" min="1" max="10" value="6" class="difficulty-slider" />
-
-        <button class="btn-coord" onclick="showCoordinates(2)">Show the Coordinates</button>
-        <button class="btn-save-pin" onclick="savePin(2)">Save</button>
-      </div>
-
-      <!-- 3. Waypoint -->
-      <div class="waypoint-box" data-index="3">
-        <h3>3. Waypoint</h3>
-        <label>Waypoint Name:</label>
-        <input type="text" class="wp-name" value="FEAS" />
-
-        <label>Question:</label>
-        <input type="text" value="Which two main disciplines do students study at the Faculty of Economics and Administrative Sciences?" />
-
-        <label>Answer:</label>
-        <input type="text" value="Economics and management sciences." />
-
-        <label>Question Difficulty Level (1-10):</label>
-        <input type="range" min="1" max="10" value="5" class="difficulty-slider" />
-
-        <button class="btn-coord" onclick="showCoordinates(3)">Show the Coordinates</button>
-        <button class="btn-save-pin" onclick="savePin(3)">Save</button>
-      </div>
-
-      <button class="save-locations-btn" onclick="addNewWaypoint()">Add New Location</button>
+      <!-- Hidden initially, shown after a successful save -->
+      <button id="addWaypointBtn" class="save-locations-btn" style="display: none;" onclick="addNewWaypoint()">Add New Location</button>
       <button class="save-locations-btn">Save Locations</button>
     </div>
-    <!-- /SOL SİDEBAR -->
+    <!-- /LEFT SIDEBAR -->
 
-    <!-- HARİTA ALANI -->
+    <!-- MAP AREA -->
     <div id="map"></div>
 
-    <!-- ARAMA ALANI -->
+    <!-- SEARCH BAR -->
     <div class="search-bar">
       <input type="text" id="searchInput" placeholder="Search location">
       <button onclick="searchLocation()">Search</button>
@@ -320,7 +278,7 @@
     <div style="color: var(--white);">© 2025 | OpenStreetMap</div>
   </div>
 
-  <!-- SAĞ PANEL -->
+  <!-- RIGHT PANEL -->
   <div id="gameInfoPanel" class="game-info-panel">
     <div class="toggle-handle" onclick="toggleGamePanel()">
       <span id="arrow">&#10095;</span>
@@ -345,72 +303,54 @@
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
-
   <script>
-    // HARİTA TANIMI
-    var map = L.map('map', {doubleClickZoom: false}).setView([39.8644, 32.7467], 15);
+    // Define custom icon using the provided static file
+    var customIcon = L.icon({
+      iconUrl: "{% static 'images/pin.png' %}",
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [0, -41]
+    });
+
+    var map = L.map('map', { doubleClickZoom: false }).setView([39.8644, 32.7467], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
 
-    var waypointCount = 3; // İlk 3 waypoint hazır geliyor
+    var waypointCount = 1;
     var markers = {};
 
-    // Haritaya çift tıklandığında pin ekleme/taşıma
+    // On double-click, place or move the marker for the current waypoint (if not locked)
     map.on('dblclick', function(e) {
-      if (markers[waypointCount] && markers[waypointCount].locked) return;
+      if (markers[waypointCount] && markers[waypointCount].locked) {
+        alert("Press the Edit button to modify this waypoint.");
+        return;
+      }
       var latlng = e.latlng;
+      // If a marker already exists, remove it
       if (markers[waypointCount]) {
         map.removeLayer(markers[waypointCount]);
       }
-      var name = document.querySelector('[data-index="'+waypointCount+'"]').querySelector('.wp-name').value || waypointCount + '. WAYPOINT';
-      markers[waypointCount] = L.marker(latlng, {draggable:true}).addTo(map).bindPopup(name).openPopup();
+      // Read the waypoint name
+      var nameElem = document.querySelector('[data-index="' + waypointCount + '"] .wp-name');
+      var name = nameElem ? nameElem.value : (waypointCount + '. WAYPOINT');
+
+      // Create or update the marker with the custom icon
+      markers[waypointCount] = L.marker(latlng, { draggable: true, icon: customIcon }).addTo(map).bindPopup(name).openPopup();
       markers[waypointCount].coords = latlng;
+
+      // Prevent dragging if locked
+      markers[waypointCount].on('mousedown', function(ev){
+        if (markers[waypointCount].locked) {
+          ev.preventDefault();
+          alert("Press the Edit button to modify this waypoint.");
+        }
+      });
 
       markers[waypointCount].on('dragend', function(event){
         markers[waypointCount].coords = event.target.getLatLng();
       });
-      markers[waypointCount].on('click', function(){
-        if (markers[waypointCount].locked && confirm('Düzeltmek ister misiniz?')){
-          markers[waypointCount].locked = false;
-          markers[waypointCount].dragging.enable();
-        }
-      });
     });
 
-    // Yeni waypoint ekle
-    function addNewWaypoint() {
-      waypointCount++;
-      var sidebar = document.getElementById('sidebar');
-      var waypointBox = document.createElement('div');
-      waypointBox.className = 'waypoint-box';
-      waypointBox.setAttribute('data-index', waypointCount);
-
-      waypointBox.innerHTML = `
-        <h3>${waypointCount}. Waypoint</h3>
-        <label>Waypoint Name:</label>
-        <input type="text" class="wp-name" placeholder="Enter waypoint name" />
-
-        <label>Question:</label>
-        <input type="text" placeholder="Enter your question" />
-
-        <label>Answer:</label>
-        <input type="text" placeholder="Enter the answer" />
-
-        <label>Hint:</label>
-        <input type="text" placeholder="Enter a hint" />
-
-        <label>Question Difficulty Level (1-10):</label>
-        <input type="range" min="1" max="10" value="5" class="difficulty-slider" />
-
-        <button class="btn-coord" onclick="showCoordinates(${waypointCount})">Show the Coordinates</button>
-        <button class="btn-save-pin" onclick="savePin(${waypointCount})">Save</button>
-      `;
-
-      // "Save Locations" butonundan önce ekliyoruz
-      var saveLocationsBtn = sidebar.querySelector('.save-locations-btn:last-of-type');
-      sidebar.insertBefore(waypointBox, saveLocationsBtn);
-    }
-
-    // Koordinatları göster
+    // Show coordinates of the waypoint
     function showCoordinates(index) {
       if (markers[index]) {
         alert('Coordinates: ' + markers[index].coords.lat.toFixed(5) + ', ' + markers[index].coords.lng.toFixed(5));
@@ -419,33 +359,109 @@
       }
     }
 
-    // Pin kaydetme ve kilitleme
-    function savePin(index){
-      if (markers[index]){
-        markers[index].locked = true;
-        markers[index].dragging.disable();
-        alert('Pin saved and locked.');
+    // Save the waypoint (validate fields, location, and update popup name)
+    function savePin(index) {
+      var waypointBox = document.querySelector('[data-index="' + index + '"]');
+      var textInputs = waypointBox.querySelectorAll('input[type="text"]');
+
+      // Validate that all text inputs are filled
+      for (var i = 0; i < textInputs.length; i++) {
+        if (textInputs[i].value.trim() === "") {
+          alert("Please complete all fields before saving.");
+          return;
+        }
+      }
+
+      // Validate that a location is selected
+      if (!markers[index] || !markers[index].coords) {
+        alert("Location cannot be saved without selection.");
+        return;
+      }
+
+      // Update marker popup with the current waypoint name
+      var nameElem = waypointBox.querySelector('.wp-name');
+      var name = nameElem ? nameElem.value : (index + '. WAYPOINT');
+      markers[index].setPopupContent(name);
+
+      // Lock the marker and disable text fields
+      markers[index].locked = true;
+      markers[index].dragging.disable();
+      for (var j = 0; j < textInputs.length; j++) {
+        textInputs[j].disabled = true;
+      }
+
+      // Show the "Edit" button
+      var editBtn = waypointBox.querySelector('.btn-edit');
+      editBtn.style.display = 'inline-block';
+
+      alert("Waypoint saved successfully.");
+      document.getElementById('addWaypointBtn').style.display = 'inline-block';
+    }
+
+    // Edit the waypoint (unlock marker and text fields)
+    function editPin(index) {
+      var waypointBox = document.querySelector('[data-index="' + index + '"]');
+      var textInputs = waypointBox.querySelectorAll('input[type="text"]');
+
+      // Unlock the marker
+      if (markers[index]) {
+        markers[index].locked = false;
+        markers[index].dragging.enable();
+      }
+      // Enable text fields
+      for (var i = 0; i < textInputs.length; i++) {
+        textInputs[i].disabled = false;
       }
     }
 
-    // Sağ panel aç/kapa
+    // Add a new waypoint box (for waypoints 2 to 5)
+    function addNewWaypoint() {
+      waypointCount++;
+      if (waypointCount > 5) {
+        alert("Maximum 5 waypoints!");
+        return;
+      }
+      var sidebar = document.getElementById('sidebar');
+      var waypointBox = document.createElement('div');
+      waypointBox.className = 'waypoint-box';
+      waypointBox.setAttribute('data-index', waypointCount);
+      waypointBox.innerHTML = `
+        <h3>Waypoint - ${waypointCount}</h3>
+        <label>Waypoint Name:</label>
+        <input type="text" class="wp-name" placeholder="Please enter a waypoint name." />
+        <label>Question:</label>
+        <input type="text" placeholder="Please enter a question." />
+        <label>Answer:</label>
+        <input type="text" placeholder="Please enter a answer." />
+        <label>Hint:</label>
+        <input type="text" placeholder="Please enter a hint." />
+        <button class="btn-coord" onclick="showCoordinates(${waypointCount})">Show the Coordinates</button>
+        <!-- EDIT BUTTON (initially hidden) -->
+        <button class="btn-edit" onclick="editPin(${waypointCount})" style="display:none;">Edit</button>
+        <button class="btn-save-pin" onclick="savePin(${waypointCount})">Save</button>
+      `;
+      var addWaypointBtn = document.getElementById('addWaypointBtn');
+      sidebar.insertBefore(waypointBox, addWaypointBtn);
+    }
+
+    // Toggle the right info panel
     function toggleGamePanel() {
       const panel = document.getElementById("gameInfoPanel");
       const arrow = document.getElementById("arrow");
       panel.classList.toggle("collapsed");
-      arrow.innerHTML = panel.classList.contains("collapsed") ? '&#10095;' : '&#10094;';
+      arrow.innerHTML = panel.classList.contains("collapsed") ? "&#10095;" : "&#10094;";
     }
 
-    // Arama
+    // Search for a location using Nominatim
     function searchLocation(){
       const query = document.getElementById('searchInput').value;
       fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`)
         .then(response => response.json())
         .then(data => {
-          if (data[0]){
+          if (data[0]) {
             map.setView([data[0].lat, data[0].lon], 16);
           } else {
-            alert('Location not found');
+            alert("Location not found");
           }
         });
     }
