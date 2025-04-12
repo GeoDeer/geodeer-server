@@ -332,7 +332,7 @@
     // --- Map and marker setup ---
     var icon = L.icon({
       iconUrl: "https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png",
-      shadowUrl: "https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png",
+      shadowUrl: "https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png"
     });
 
     var map = L.map('map', { doubleClickZoom: false }).setView([39.8644, 32.7467], 15);
@@ -346,30 +346,33 @@
     // --- Map event: Set/move marker on double-click ---
     map.on('dblclick', function(e) {
       if (markers[waypointCount] && markers[waypointCount].locked) {
-        alert("Press the Edit button to modify this waypoint.");
-        return;
+      alert("Press the Edit button to modify this waypoint.");
+      return;
       }
       var latlng = e.latlng;
       if (markers[waypointCount]) {
-        map.removeLayer(markers[waypointCount]);
+      map.removeLayer(markers[waypointCount]);
       }
       var nameElem = document.querySelector('[data-index="' + waypointCount + '"] .wp-name');
       var name = nameElem ? nameElem.value : "Waypoint " + waypointCount;
       markers[waypointCount] = L.marker(latlng, { draggable: true, icon: icon })
-                              .addTo(map)
-                              .bindPopup((waypointCount === 1 ? "Start Location" :
-                                          (document.querySelector('[data-index="' + waypointCount + '"]').dataset.last === "true" ? "Last Waypoint" : ordinal(waypointCount - 1) + " Waypoint") 
-                                         ) + ": " + name)
-                              .openPopup();
+            .addTo(map)
+            .bindTooltip((waypointCount === 1 ? "Start Location" :
+                (document.querySelector('[data-index="' + waypointCount + '"]').dataset.last === "true" ? "Last Waypoint" : ordinal(waypointCount - 1) + " Waypoint") 
+                 ) + ": " + name, {
+                 permanent: true,
+                 direction: 'top',
+                 offset: [12, 0],
+                 });
       markers[waypointCount].coords = latlng;
       markers[waypointCount].on('mousedown', function(ev){
-        if (markers[waypointCount].locked) {
-          ev.preventDefault();
-          alert("Press the Edit button to modify this waypoint.");
-        }
+      if (markers[waypointCount].locked) {
+        ev.preventDefault();
+        alert("Press the Edit button to modify this waypoint.");
+      }
       });
       markers[waypointCount].on('dragend', function(event){
-        markers[waypointCount].coords = event.target.getLatLng();
+      markers[waypointCount].coords = event.target.getLatLng();
       });
     });
 
@@ -390,46 +393,46 @@
 
       // Validate input fields
       for (var i = 0; i < textInputs.length; i++) {
-        if (textInputs[i].value.trim() === "") {
-          alert("Please complete all fields before saving.");
-          return;
-        }
+      if (textInputs[i].value.trim() === "") {
+        alert("Please complete all fields before saving.");
+        return;
+      }
       }
 
       // Check difficulty slider for waypoints beyond the start location
       if (index > 1) {
-        var difficultySlider = waypointBox.querySelector('.difficulty-slider');
-        if (!difficultySlider || parseInt(difficultySlider.value) < 1) {
-          alert("Please select a difficulty level between 1 and 10.");
-          return;
-        }
+      var difficultySlider = waypointBox.querySelector('.difficulty-slider');
+      if (!difficultySlider || parseInt(difficultySlider.value) < 1) {
+        alert("Please select a difficulty level between 1 and 10.");
+        return;
+      }
       }
 
       if (!markers[index] || !markers[index].coords) {
-        alert("Location cannot be saved without selection.");
-        return;
+      alert("Location cannot be saved without selection.");
+      return;
       }
       
       var nameElem = waypointBox.querySelector('.wp-name');
       var name = nameElem ? nameElem.value : ("Waypoint " + index);
       
-      // Update marker popup title based on type
+      // Update marker tooltip title based on type
       if (index === 1) {
-        markers[index].setPopupContent("Start Location: " + name);
+      markers[index].setTooltipContent("Start Location: " + name);
       } else if (waypointBox.dataset.last === "true") {
-        markers[index].setPopupContent("Last Waypoint: " + name);
+      markers[index].setTooltipContent("Last Waypoint: " + name);
       } else {
-        markers[index].setPopupContent(ordinal(index - 1) + " Waypoint: " + name);
+      markers[index].setTooltipContent(ordinal(index - 1) + " Waypoint: " + name);
       }
       
       markers[index].locked = true;
       markers[index].dragging.disable();
       for (var j = 0; j < textInputs.length; j++) {
-        textInputs[j].disabled = true;
+      textInputs[j].disabled = true;
       }
       if (index > 1) {
-        var difficultySlider = waypointBox.querySelector('.difficulty-slider');
-        if(difficultySlider) difficultySlider.disabled = true;
+      var difficultySlider = waypointBox.querySelector('.difficulty-slider');
+      if(difficultySlider) difficultySlider.disabled = true;
       }
       var editBtn = waypointBox.querySelector('.btn-edit');
       editBtn.style.display = 'inline-block';
