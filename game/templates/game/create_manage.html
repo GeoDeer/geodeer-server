@@ -92,6 +92,18 @@
       margin-right: 5px;
       margin-top: 5px;
     }
+  
+    .btn-delete {
+      background-color: var(--vibrant-orange);
+      color: var(--white);
+      border: none;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      margin-right: 5px;
+      margin-top: 5px;
+    }
     .save-locations-btn {
       background-color: var(--vibrant-orange);
       color: var(--white);
@@ -253,13 +265,13 @@
         <button class="btn-coord" onclick="showCoordinates(1)">Show the Coordinates</button>
         <!-- EDIT BUTTON (initially hidden) -->
         <button class="btn-edit" onclick="editPin(1)" style="display:none;">Edit</button>
-        <button class="btn-save-pin" onclick="savePin(1)">Save</button>
+        <button class="btn-save-pin" onclick="window.savePin(1)">Save</button>
       </div>
       
       <!-- Container for the Add New Location and Add Last Location buttons -->
       <div id="locationButtons" style="display: flex; gap: 10px; margin-top: 10px;">
-        <button id="addWaypointBtn" class="save-locations-btn" style="display: none;" onclick="addNewWaypoint()">Add New Location</button>
-        <button id="addLastLocationBtn" class="save-locations-btn" style="display: none;" onclick="addLastLocation()">Add Last Location</button>
+        <button id="addWaypointBtn" class="save-locations-btn" style="display: none;" onclick="addNewWaypoint()">Add New Waypoint</button>
+        <button id="addLastLocationBtn" class="save-locations-btn" style="display: none;" onclick="addLastLocation()">Add Last Waypoint</button>
       </div>
     </div>
     <!-- /LEFT SIDEBAR -->
@@ -318,11 +330,9 @@
     }
 
     // --- Map and marker setup ---
-    var customIcon = L.icon({
-      iconUrl: "{% static 'images/pin.png' %}",
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [0, -41]
+    var icon = L.icon({
+      iconUrl: "https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png",
+      shadowUrl: "https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png",
     });
 
     var map = L.map('map', { doubleClickZoom: false }).setView([39.8644, 32.7467], 15);
@@ -345,7 +355,7 @@
       }
       var nameElem = document.querySelector('[data-index="' + waypointCount + '"] .wp-name');
       var name = nameElem ? nameElem.value : "Waypoint " + waypointCount;
-      markers[waypointCount] = L.marker(latlng, { draggable: true, icon: customIcon })
+      markers[waypointCount] = L.marker(latlng, { draggable: true, icon: icon })
                               .addTo(map)
                               .bindPopup((waypointCount === 1 ? "Start Location" :
                                           (document.querySelector('[data-index="' + waypointCount + '"]').dataset.last === "true" ? "Last Waypoint" : ordinal(waypointCount - 1) + " Waypoint") 
@@ -371,6 +381,8 @@
         alert('Please double-click on the map to set the location for waypoint ' + index);
       }
     }
+
+    var isSaved = false;
 
     function savePin(index) {
       var waypointBox = document.querySelector('[data-index="' + index + '"]');
@@ -424,6 +436,8 @@
       alert("Waypoint saved successfully.");
       document.getElementById('addWaypointBtn').style.display = 'inline-block';
       document.getElementById('addLastLocationBtn').style.display = 'inline-block';
+
+      isSaved = true;
     }
 
     function editPin(index) {
@@ -440,9 +454,37 @@
         var difficultySlider = waypointBox.querySelector('.difficulty-slider');
         if(difficultySlider) difficultySlider.disabled = false;
       }
+
+      isSaved = true;
+    }
+    
+    function deletePin(index) {
+      if (confirm("Are you sure you want to delete this waypoint?")) {
+
+        if(markers[index]) {
+          map.removeLayer(markers[index]);
+          delete markers[index];
+        }
+        var waypointBox = document.querySelector('[data-index="' + index + '"]');
+        if(waypointBox) {
+          waypointBox.parentNode.removeChild(waypointBox);
+        }
+      }
+
+      isSaved = true;
     }
 
     function addNewWaypoint() {
+      if (isSaved == false) {
+        alert("Please save the current waypoint before adding a new one.");
+        return;
+      }
+      
+      if (lastPointCount >= 1) {
+        alert("You can add a waypoint after the last waypoint!");
+        return;
+      }
+
       if (waypointCount > 4) {
         alert("Maximum 5 waypoints (including Start Point and Last Waypoint)!");
         return;
@@ -476,12 +518,20 @@
         <button class="btn-coord" onclick="showCoordinates(${waypointCount})">Show the Coordinates</button>
         <button class="btn-edit" onclick="editPin(${waypointCount})" style="display:none;">Edit</button>
         <button class="btn-save-pin" onclick="savePin(${waypointCount})">Save</button>
+        <button class="btn-delete" onclick="deletePin(${waypointCount})">Delete</button>
       `;
       var locationButtons = document.getElementById('locationButtons');
       locationButtons.parentNode.insertBefore(waypointBox, locationButtons);
+
+      isSaved = false;
     }
 
     function addLastLocation() {
+      if (isSaved === false) {
+        alert("Please save the current waypoint before adding a new one.");
+        return;
+      }
+
       if (lastPointCount === 1) {
         alert("Only one Last Waypoint!");
         return;
@@ -522,9 +572,12 @@
         <button class="btn-coord" onclick="showCoordinates(${waypointCount})">Show the Coordinates</button>
         <button class="btn-edit" onclick="editPin(${waypointCount})" style="display:none;">Edit</button>
         <button class="btn-save-pin" onclick="savePin(${waypointCount})">Save</button>
+        <button class="btn-delete" onclick="deletePin(${waypointCount})">Delete</button>
       `;
       var locationButtons = document.getElementById('locationButtons');
       locationButtons.parentNode.insertBefore(waypointBox, locationButtons);
+
+      isSaved = false;
     }
 
     function toggleGamePanel() {
