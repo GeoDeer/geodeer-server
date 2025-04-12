@@ -10,7 +10,10 @@
       margin: 0; 
       padding: 0; 
       box-sizing: border-box; 
-      font-family: "Poppins", Times, serif;
+      font-family: "Poppins", sans-serif;
+    }
+    body, input, button, label, h1, h2, h3, h4, h5, h6 {
+      font-family: "Poppins", sans-serif;
     }
     :root {
       --dark-green: #296B45;
@@ -136,7 +139,7 @@
     }
     .game-info-panel {
       position: absolute;
-      bottom: 60px;
+      bottom: 80px;
       right: 0;
       width: 260px;
       background-color: var(--white);
@@ -195,7 +198,7 @@
       font-size: 0.9rem;
       margin-bottom: 8px;
     }
-    .save-game-btn {
+    {% comment %} .save-game-btn {
       background-color: var(--vibrant-orange);
       color: var(--white);
       border: none;
@@ -210,7 +213,7 @@
     }
     .save-game-btn:hover {
       opacity: 0.9;
-    }
+    } {% endcomment %}
     .search-bar {
       position: absolute;
       top: 70px;
@@ -289,7 +292,7 @@
   <!-- FOOTER -->
   <div id="footer">
     <button>Back to Main Menu</button>
-    <div style="color: var(--white);">© 2025 | OpenStreetMap</div>
+    <button form="gameInfoForm" type="submit" class="save-game-btn">Save Game</button>
   </div>
 
   <!-- RIGHT PANEL -->
@@ -297,19 +300,31 @@
     <div class="toggle-handle" onclick="toggleGamePanel()">
       <span id="arrow">&#10095;</span>
     </div>
-    <h2>General Information About Game</h2>
+    <h2>General Information</h2>
     <div class="info-content">
-      <label for="gameName">Game Name:</label>
-      <input type="text" id="gameName" value="Hacettepe Un." />
-      <label for="startTime">Start Time:</label>
-      <input type="text" id="startTime" value="2025/09/16" />
-      <label for="numPlayers">Number of Players:</label>
-      <input type="text" id="numPlayers" value="4" />
-      <label for="time">Time:</label>
-      <input type="text" id="time" value="01:00:00" />
-      <button class="save-game-btn">Save Game</button>
+      <form id="gameInfoForm" method="post">
+        {% csrf_token %}
+        <label for="gameName">Game Name:</label>
+        <input type="text" name="game_name" id="gameName" value="{{ game.game_name }}" />
+
+        <div style="display: flex; gap: 10px;">
+          <div>
+            <label for="startDate" style="display:block;">Start Date:</label>
+            <input type="text" name="start_date" id="startDate" value="{{ game.start_date_time|date:'Y/m/d' }}" />
+          </div>
+          <div>
+            <label for="startTimeOnly" style="display:block;">Start Time:</label>
+            <input type="text" name="start_time" id="startTimeOnly" value="{{ game.start_date_time|date:'H:i:s' }}" />
+          </div>
+        </div>
+
+        <label for="numPlayers">Number of Players:</label>
+        <input type="text" name="number_of_players" id="numPlayers" value="{{ game.number_of_players|floatformat:0}}" />
+
+        <label for="time">Time:</label>
+        <input type="text" name="time" id="time" value="{{ game.time|floatformat:0 }}" />
+      </form>
     </div>
-  </div>
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
@@ -589,7 +604,6 @@
       panel.classList.toggle("collapsed");
       arrow.innerHTML = panel.classList.contains("collapsed") ? "&#10095;" : "&#10094;";
     }
-
     function searchLocation(){
       const query = document.getElementById('searchInput').value;
       fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`)
