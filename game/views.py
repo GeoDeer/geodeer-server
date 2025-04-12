@@ -63,75 +63,7 @@ def main_menu(request, creator_id):
     return render(request, 'game/main_menu.html', {'games': games})
 
 def create_manage(request, creator_id):
-    if request.method == "POST":
-        try:
-            data = json.loads(request.body)
-        except json.JSONDecodeError:
-            return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
-
-        game = Game.objects.filter(game_creator_id=creator_id).first()
-        if not game:
-            return JsonResponse({"status": "error", "message": "Game not found"}, status=404)
-
-        waypoint_id = data.get("id")
-        if waypoint_id:
-            try:
-                wp = game.waypoints.get(waypoint_id=waypoint_id)
-            except Waypoint.DoesNotExist:
-                wp = Waypoint(game=game)
-        else:
-            wp = Waypoint(game=game)
-
-        wp.waypoint_name = data.get("waypoint_name", "")
-        wp.question = data.get("question", "")
-        wp.answer = data.get("answer", "")
-        wp.hint = data.get("hint", "")
-        try:
-            wp.ques_dif_level = float(data.get("ques_dif_level", 0))
-        except (ValueError, TypeError):
-            wp.ques_dif_level = 0
-        try:
-            wp.lat = float(data.get("lat", 0))
-            wp.lon = float(data.get("lon", 0))
-        except (ValueError, TypeError):
-            wp.lat, wp.lon = 0, 0
-        wp.height = 0
-        wp.waypoint_geom = Point(wp.lon, wp.lat)
-        wp.save()
-
-        return JsonResponse({"status": "success", "id": wp.waypoint_id})
-
-    game = Game.objects.filter(game_creator_id=creator_id).first()
-    waypoints_data = []
-    if game:
-        waypoints_qs = game.waypoints.all().order_by('waypoint_id')
-        total = waypoints_qs.count()
-        for i, wp in enumerate(waypoints_qs, start=1):
-            if i == 1:
-                label = "Start Point"
-            elif i == total:
-                label = "Last Point"
-            else:
-                label = ordinal(i) + " Waypoint"
-            waypoints_data.append({
-                'id': wp.waypoint_id,
-                'waypoint_name': wp.waypoint_name,
-                'lat': wp.lat,
-                'lon': wp.lon,
-                'height': wp.height,
-                'hint': wp.hint,
-                'question': wp.question,
-                'answer': wp.answer,
-                'ques_dif_level': wp.ques_dif_level,
-                'ordinal_label': label,
-            })
-
-    context = {
-        'game': game,
-        'waypoints': waypoints_data,
-        'creator_id': creator_id,
-    }
-    return render(request, 'game/create_manage.html', context)
+    return render(request, 'game/create_manage.html')
 
 def ordinal(n):
     if 11 <= (n % 100) <= 13:
