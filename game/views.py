@@ -5,9 +5,11 @@ from django.contrib.auth import login
 from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.auth.models import User
 from django.contrib.gis.geos import Point
-from .models import Game, UserScore, UserLocation, Waypoint
-from .models import User
-import json
+from .models import Game, UserScore, UserLocation, Waypoint, User
+
+import datetime
+import random
+import string
 
 def auth(request):
     return render(request, 'game/auth.html')
@@ -62,8 +64,67 @@ def main_menu(request, creator_id):
     games = Game.objects.filter(game_creator_id=creator_id).order_by('-start_date_time')
     return render(request, 'game/main_menu.html', {'games': games})
 
-def create_manage(request, creator_id):
-    return render(request, 'game/create_manage.html')
+def generate_invite_id(length=6):
+    chars = string.ascii_uppercase + string.digits
+    return ''.join(random.choices(chars, k=length))
+
+def generate_invite_id(length=6):
+    chars = string.ascii_uppercase + string.digits
+    return ''.join(random.choices(chars, k=length))
+
+def create_manage(request, creator_id, game_id):
+    game = Game.objects.filter(game_id=game_id, game_creator_id=creator_id).first()
+
+    if request.method == 'POST':
+        game_name = request.POST.get('game_name', '').strip()
+        start_date_str = request.POST.get('start_date', '').strip()  
+        start_time_str = request.POST.get('start_time', '').strip()  
+        number_of_players_str = request.POST.get('number_of_players', '0').strip()
+        time_str = request.POST.get('time', '').strip()  
+
+        start_dt = None
+        if start_date_str and start_time_str:
+            try:
+                start_dt = datetime.datetime.strptime(f"{start_date_str} {start_time_str}", "%Y/%m/%d %H:%M:%S")
+            except ValueError:
+                start_dt = None
+
+        try:
+            number_of_players = float(number_of_players_str)
+        except ValueError:
+            number_of_players = 0
+
+        try:
+            time_float = float(time_str)
+        except ValueError:
+            time_float = 0
+
+        if game:
+            game.game_name = game_name
+            if start_dt:
+                game.start_date_time = start_dt
+            game.number_of_players = number_of_players
+            game.time = time_float
+            game.save()
+        else:
+            creator = get_object_or_404(User, id=creator_id)
+            invite_id = generate_invite_id()
+            game = Game.objects.create(
+                game_name=game_name,
+                start_date_time=start_dt,
+                number_of_players=number_of_players,
+                time=time_float,
+                invite_id=invite_id,
+                game_creator=creator,
+            )
+        return redirect('create_manage', creator_id=creator_id, game_id=game.game_id)
+
+    context = {
+        'creator_id': creator_id,
+        'game_id': game_id,
+        'game': game,
+    }
+    return render(request, 'game/create_manage.html', context)
 
 def ordinal(n):
     if 11 <= (n % 100) <= 13:
