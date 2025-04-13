@@ -52,6 +52,18 @@
     #map {
       width: 100%;
       height: 100%;
+      position: relative; 
+    }
+    #layerControl {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background-color: var(--white);
+      padding: 5px 8px;
+      border-radius: 4px;
+      box-shadow: 0 0 6px rgba(0,0,0,0.3);
+      z-index: 1000;
+      font-size: 0.9rem;
     }
     #footer {
       background-color: var(--dark-green);
@@ -169,7 +181,12 @@
     </div>
 
     <!-- Map Container -->
-    <div id="map"></div>
+    <div id="map">
+      <div id="layerControl">
+        <input type="checkbox" id="toggleLayer" onchange="toggleLayer()" />
+        <label for="toggleLayer">Satellite View</label>
+      </div>
+    </div>
     <div id="speed-chart"></div>
   </div>
 
@@ -184,9 +201,32 @@
 
 
   <script>
-    var map = L.map('map').setView([39.8644, 32.7467], 15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+    var map = L.map('map', { doubleClickZoom: false }).setView([39.8644, 32.7467], 15);
   
+    var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    });
+  
+    var satelliteLayer = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19,
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye'
+    });
+
+    osmLayer.addTo(map);
+  
+    function toggleLayer() {
+      const checkbox = document.getElementById('toggleLayer');
+      if (checkbox.checked) {
+        map.removeLayer(osmLayer);
+        map.addLayer(satelliteLayer);
+      } else {
+        map.removeLayer(satelliteLayer);
+        map.addLayer(osmLayer);
+      }
+    }
+
     function getIcon(iconName) {
       return L.icon({
         iconUrl: "{% static 'images/' %}" + iconName + ".png",
@@ -215,7 +255,7 @@
         {% endfor %}
       ];
       polylines["{{ player.id }}"] = L.polyline(pathCoords, { 
-          color: "{{ player.icon }}",
+          color: "{% if player.icon == 'purple' %}#9791d8{% else %}{{ player.icon }}{% endif %}",
           weight: 5,
           dashArray: "10, 10",
           className: "polyline-shadow"
