@@ -19,9 +19,12 @@ class UserSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 class GameSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Game
-        fields = '__all__'
+      game_creator = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+
+      class Meta:
+          model = Game
+          fields = '__all__'
+          read_only_fields = ['invite_id']
 
 class WaypointSerializer(serializers.ModelSerializer):
     class Meta:

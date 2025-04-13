@@ -1,6 +1,9 @@
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GEOSGeometry
 
+import random
+from datetime import datetime
+
 class User(models.Model):
     user_id = models.BigAutoField(primary_key=True)
     username = models.CharField(max_length=12, unique=True)
@@ -16,12 +19,26 @@ class Game(models.Model):
     start_date_time = models.DateTimeField()
     number_of_players = models.FloatField()
     time = models.FloatField()
-    invite_id = models.CharField(max_length=10)
+    invite_id = models.CharField(max_length=10, blank=True)
     game_creator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_games')
 
     def __str__(self):
         return self.game_name
 
+    def format_two_digits(self, value):
+        return str(value).zfill(2)[-2:]
+
+    def generate_invite_id(self):
+        game_id_part = self.format_two_digits(self.game_id)
+        date_part = self.format_two_digits(self.start_date_time.day)
+        rand_part = self.format_two_digits(random.randint(0, 9999))
+        return f"#{game_id_part}{date_part}{rand_part}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if not self.invite_id:
+            self.invite_id = self.generate_invite_id()
+            super().save(update_fields=['invite_id'])
 class Waypoint(models.Model):
     waypoint_id = models.BigAutoField(primary_key=True)
     game= models.ForeignKey(Game, on_delete=models.CASCADE, related_name='waypoints')
