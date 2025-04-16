@@ -41,7 +41,7 @@ class Game(models.Model):
             super().save(update_fields=['invite_id'])
 class Waypoint(models.Model):
     waypoint_id = models.BigAutoField(primary_key=True)
-    game= models.ForeignKey(Game, on_delete=models.CASCADE, related_name='waypoints')
+    game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='waypoints')
     waypoint_name = models.CharField(max_length=255)
     lat = models.FloatField()
     lon = models.FloatField()
@@ -50,27 +50,29 @@ class Waypoint(models.Model):
     question = models.TextField()
     answer = models.TextField()
     ques_dif_level = models.FloatField()
-    waypoint_geom = models.PointField()
+    waypoint_geom = models.PointField(null=True, blank=True)
     waypoint_buffer = models.PolygonField(null=True, blank=True)
 
     def __str__(self):
         return self.waypoint_name
-    
+
     def create_buffer(self, buffer_distance=5):
         geom = self.waypoint_geom
-    
+
         if geom.srid is None:
             raise ValueError("SRID not defined.")
 
         geom_proj = GEOSGeometry(geom.wkt, geom.srid)
         geom_proj.transform(3857)
-        
-        buff = geom_proj.buffer(buffer_distance, quadsegs=8)  
+
+        buff = geom_proj.buffer(buffer_distance, quadsegs=8)
         buff.transform(4326)
 
         return buff
 
     def save(self, *args, **kwargs):
+        if not self.waypoint_geom:
+            self.waypoint_geom = GEOSGeometry(f'POINT({self.lon} {self.lat})', srid=4326)
         self.waypoint_buffer = self.create_buffer(buffer_distance=5)
         super().save(*args, **kwargs)
     
