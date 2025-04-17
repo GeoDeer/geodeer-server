@@ -264,7 +264,8 @@
     <div id="sidebar">
       <h2>Waypoint Locations</h2>
       {% for wp in game.waypoints.all %}
-      <div class="waypoint-box" data-index="{{ forloop.counter }}" data-id="{{ wp.waypoint_id }}" {% if forloop.last %}data-last="true"{% endif %}>
+        <div class="waypoint-box" data-index="{{ forloop.counter }}" data-id="{{ wp.waypoint_id }}"
+             {% if not forloop.first and forloop.last %}data-last="true"{% endif %}>
         <h3>
           {% if forloop.first %}Start Location{% elif forloop.last %}Last Waypoint{% else %}{{ forloop.counter|add:"-1" }}. Waypoint{% endif %}
         </h3>
@@ -292,7 +293,21 @@
         <button class="btn-delete" onclick="deletePin({{ forloop.counter }})">Delete</button>
         {% endif %}
       </div>
+      {% empty %}
+        <div class="waypoint-box" data-index="1">
+          <h3>Start Location</h3>
+          <label>Waypoint Name:</label>
+          <input type="text" class="wp-name" disabled />
+          <label>Hint:</label>
+          <input type="text" class="wp-hint" disabled />
+          <label>NOTE: Start Location is fixed!</label>
+          <label>Double clicks must be made on the map to select a location.</label>
+          <button class="btn-coord" onclick="showCoordinates(1)">Show Coordinates</button>
+          <button class="btn-edit" onclick="editPin(1)">Edit</button>
+          <button class="btn-save-pin" onclick="savePin(1)" style="display:none;">Save</button>
+        </div>
       {% endfor %}
+
       <div id="locationButtons" style="display:flex;gap:10px;margin-top:10px;">
         <button id="addWaypointBtn" class="save-locations-btn" onclick="addNewWaypoint()">Add New Waypoint</button>
         <button id="addLastLocationBtn" class="save-locations-btn" onclick="addLastLocation()">Add Last Waypoint</button>
@@ -409,9 +424,13 @@
   {% endfor %}
 
   if (coordList.length) {
-    var sLat = 0, sLng = 0;
+    let sLat = 0, sLng = 0;
     coordList.forEach(c => { sLat += c[0]; sLng += c[1]; });
     map.setView([sLat / coordList.length, sLng / coordList.length], 15);
+  } else {
+    const defaultCenter = [39.47429693203053, 32.93574419984895];
+    const defaultZoom   = 3;
+    map.setView(defaultCenter, defaultZoom);
   }
 
   function savePin(i) {
@@ -470,10 +489,8 @@
     }
   
     if (box) box.remove();
-  
   }
   
-
   map.on('dblclick', function (e) {
     if (currentEditIndex === null) {
       alert('Press the Edit button to modify this waypoint.');
