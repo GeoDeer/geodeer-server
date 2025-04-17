@@ -260,59 +260,59 @@
     <div class="logo">GeoDeer</div>
     <div class="subtitle">A Map-Based Treasure Hunt Game</div>
   </div>
-
   <div id="main">
-    <!-- LEFT SIDEBAR -->
     <div id="sidebar">
       <h2>Waypoint Locations</h2>
-      
-      <!-- Static Start Location (first waypoint) -->
-      <div class="waypoint-box" data-index="1">
-        <h3>Start Location</h3>
+      {% for wp in game.waypoints.all %}
+      <div class="waypoint-box" data-index="{{ forloop.counter }}" data-id="{{ wp.waypoint_id }}" {% if forloop.last %}data-last="true"{% endif %}>
+        <h3>
+          {% if forloop.first %}Start Location{% elif forloop.last %}Last Waypoint{% else %}{{ forloop.counter|add:"-1" }}. Waypoint{% endif %}
+        </h3>
         <label>Waypoint Name:</label>
-        <!-- Preset and disabled so it always shows "Start Location" -->
-        <input type="text" class="wp-name" placeholder="Start Location">
-        <label>Double clicks must be made on the map to select a location.</label>
+        <input type="text" class="wp-name" name="ignore" value="{{ wp.waypoint_name }}" disabled />
+        {% if not forloop.first %}
+        <label>Question:</label>
+        <input type="text" class="wp-question" name="ignore" value="{{ wp.question }}" disabled />
+        <label>Answer:</label>
+        <input type="text" class="wp-answer" name="ignore" value="{{ wp.answer }}" disabled />
         <label>Hint:</label>
-        <input type="text" placeholder="Please enter a hint." />
+        <input type="text" class="wp-hint" name="ignore" value="{{ wp.hint }}" disabled />
+        <label>Difficulty Level (1-10):</label>
+        <input type="range" min="1" max="10" class="difficulty-slider" name="ignore" value="{{ wp.ques_dif_level }}" disabled />
+        {% else %}
+        <label>Hint:</label>
+        <input type="text" class="wp-hint" name="ignore" value="{{ wp.hint }}" disabled />
         <label>NOTE: Start Location is fixed!</label>
-        <label>Press the save button to add a new waypoint.</label>
-        <button class="btn-coord" onclick="showCoordinates(1)">Show the Coordinates</button>
-        <!-- EDIT BUTTON (initially hidden) -->
-        <button class="btn-edit" onclick="editPin(1)" style="display:none;">Edit</button>
-        <button class="btn-save-pin" onclick="window.savePin(1)">Save</button>
+        <label>Double clicks must be made on the map to select a location.</label>
+        {% endif %}
+        <button class="btn-coord" onclick="showCoordinates({{ forloop.counter }})">Show Coordinates</button>
+        <button class="btn-edit" onclick="editPin({{ forloop.counter }})">Edit</button>
+        <button class="btn-save-pin" onclick="savePin({{ forloop.counter }})" style="display:none;">Save</button>
+        {% if not forloop.first %}
+        <button class="btn-delete" onclick="deletePin({{ forloop.counter }})">Delete</button>
+        {% endif %}
       </div>
-      
-      <!-- Container for the Add New Location and Add Last Location buttons -->
-      <div id="locationButtons" style="display: flex; gap: 10px; margin-top: 10px;">
-        <button id="addWaypointBtn" class="save-locations-btn" style="display: none;" onclick="addNewWaypoint()">Add New Waypoint</button>
-        <button id="addLastLocationBtn" class="save-locations-btn" style="display: none;" onclick="addLastLocation()">Add Last Waypoint</button>
+      {% endfor %}
+      <div id="locationButtons" style="display:flex;gap:10px;margin-top:10px;">
+        <button id="addWaypointBtn" class="save-locations-btn" onclick="addNewWaypoint()">Add New Waypoint</button>
+        <button id="addLastLocationBtn" class="save-locations-btn" onclick="addLastLocation()">Add Last Waypoint</button>
       </div>
     </div>
-    <!-- /LEFT SIDEBAR -->
-
-    <!-- MAP AREA -->
     <div id="map">
       <div id="layerControl">
         <input type="checkbox" id="toggleLayer" onchange="toggleLayer()" />
         <label for="toggleLayer">Satellite View</label>
       </div>
     </div>
-
-    <!-- SEARCH BAR -->
     <div class="search-bar">
-      <input type="text" id="searchInput" placeholder="Search location">
+      <input type="text" id="searchInput" placeholder="Search location" />
       <button onclick="searchLocation()">Search</button>
     </div>
   </div>
-
-  <!-- FOOTER -->
   <div id="footer">
     <button>Back to Main Menu</button>
-    <button form="gameInfoForm" type="submit" class="save-game-btn">Save Game</button>
+    <button id="saveGameBtn" type="button" class="save-game-btn">Save Game</button>
   </div>
-
-  <!-- RIGHT PANEL -->
   <div id="gameInfoPanel" class="game-info-panel">
     <div class="toggle-handle" onclick="toggleGamePanel()">
       <span id="arrow">&#10095;</span>
@@ -323,338 +323,314 @@
         {% csrf_token %}
         <label for="gameName">Game Name:</label>
         <input type="text" name="game_name" id="gameName" value="{{ game.game_name }}" />
-
-        <div style="display: flex; gap: 10px;">
+        <div style="display:flex;gap:10px;">
           <div>
-            <label for="startDate" style="display:block;">Start Date:</label>
+            <label for="startDate">Start Date:</label>
             <input type="text" name="start_date" id="startDate" value="{{ game.start_date_time|date:'Y/m/d' }}" />
           </div>
           <div>
-            <label for="startTimeOnly" style="display:block;">Start Time:</label>
+            <label for="startTimeOnly">Start Time:</label>
             <input type="text" name="start_time" id="startTimeOnly" value="{{ game.start_date_time|date:'H:i:s' }}" />
           </div>
         </div>
-
         <label for="numPlayers">Number of Players:</label>
-        <input type="text" name="number_of_players" id="numPlayers" value="{{ game.number_of_players|floatformat:0}}" />
-
+        <input type="text" name="number_of_players" id="numPlayers" value="{{ game.number_of_players|floatformat:0 }}" />
         <label for="time">Time:</label>
         <input type="text" name="time" id="time" value="{{ game.time|floatformat:0 }}" />
+        <input type="hidden" name="waypoints_data" id="waypointsData" />
       </form>
     </div>
-
-  <!-- Leaflet JS -->
+  </div>
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
-  <script>
-    function ordinal(n) {
-      let suffix;
-      if (11 <= (n % 100) && (n % 100) <= 13) {
-        suffix = 'th';
-      } else {
-        switch(n % 10) {
-          case 1: suffix = 'st'; break;
-          case 2: suffix = 'nd'; break;
-          case 3: suffix = 'rd'; break;
-          default: suffix = 'th';
-        }
-      }
-      return n + suffix;
-    }
+<script>
+  var isSaved = true;
+  var isEditable = false;
+  let waypointCount = {{ waypoint_count }};
+  let hasInitialLast = {{ last_point_count }} > 0;
+  let lastPointCount = {{ last_point_count }};
 
-    var icon = L.icon({
-      iconUrl: "https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png",
-      shadowUrl: "https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png"
-    });
-  
-    var map = L.map('map', { doubleClickZoom: false }).setView([39.8644, 32.7467], 15);
-  
-    var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors'
-    });
-  
-    var satelliteLayer = L.tileLayer(
-      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        maxZoom: 19,
-        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye'
-    });
-
-    osmLayer.addTo(map);
-  
-    function toggleLayer() {
-      const checkbox = document.getElementById('toggleLayer');
-      if (checkbox.checked) {
-        map.removeLayer(osmLayer);
-        map.addLayer(satelliteLayer);
-      } else {
-        map.removeLayer(satelliteLayer);
-        map.addLayer(osmLayer);
+  function ordinal(n) {
+    let s;
+    if (11 <= (n % 100) && (n % 100) <= 13) {
+      s = 'th';
+    } else {
+      switch (n % 10) {
+        case 1: s = 'st'; break;
+        case 2: s = 'nd'; break;
+        case 3: s = 'rd'; break;
+        default: s = 'th';
       }
     }
+    return n + s;
+  }
 
-    // waypointCount starts at 1 for the Start Location.
-    var waypointCount = 1;
-    var markers = {};
-    var lastPointCount = 0;
+  var icon = L.icon({
+    iconUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png'
+  });
 
-    // --- Map event: Set/move marker on double-click ---
-    map.on('dblclick', function(e) {
-      if (markers[waypointCount] && markers[waypointCount].locked) {
-      alert("Press the Edit button to modify this waypoint.");
+  var map = L.map('map', { doubleClickZoom: false });
+  var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap contributors'
+  });
+  var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    attribution: 'Tiles © Esri'
+  });
+  osmLayer.addTo(map);
+
+  function toggleLayer() {
+    var c = document.getElementById('toggleLayer');
+    if (c.checked) {
+      map.removeLayer(osmLayer);
+      map.addLayer(satelliteLayer);
+    } else {
+      map.removeLayer(satelliteLayer);
+      map.addLayer(osmLayer);
+    }
+  }
+
+  var markers = {}, coordList = [];
+  {% for wp in game.waypoints.all %}
+  (function(i, lat, lon, name, isLast) {
+    var m = L.marker([lat, lon], { draggable: false, icon: icon }).addTo(map);
+    m.bindTooltip(
+      isLast
+        ? 'Last Waypoint: ' + name
+        : (i === 1 ? 'Start Location: ' + name : ordinal(i - 1) + ' Waypoint: ' + name),
+      { permanent: true, direction: 'top', offset: [12, 0] }
+    );
+    m.locked = true;
+    m.coords = m.getLatLng();
+    markers[i] = m;
+    coordList.push([lat, lon]);
+  })({{ forloop.counter }}, {{ wp.lat }}, {{ wp.lon }}, '{{ wp.waypoint_name }}', {{ wp.is_last|yesno:'true,false' }});
+  {% endfor %}
+
+  if (coordList.length) {
+    var sLat = 0, sLng = 0;
+    coordList.forEach(c => { sLat += c[0]; sLng += c[1]; });
+    map.setView([sLat / coordList.length, sLng / coordList.length], 15);
+  }
+
+  function savePin(i) {
+    if (!markers[i] || !markers[i].coords) {
+      alert('Please select a location on the map first.');
       return;
-      }
-      var latlng = e.latlng;
-      if (markers[waypointCount]) {
-      map.removeLayer(markers[waypointCount]);
-      }
-      var nameElem = document.querySelector('[data-index="' + waypointCount + '"] .wp-name');
-      var name = nameElem ? nameElem.value : "Waypoint " + waypointCount;
-      markers[waypointCount] = L.marker(latlng, { draggable: true, icon: icon })
-            .addTo(map)
-            .bindTooltip((waypointCount === 1 ? "Start Location" :
-                (document.querySelector('[data-index="' + waypointCount + '"]').dataset.last === "true" ? "Last Waypoint" : ordinal(waypointCount - 1) + " Waypoint") 
-                 ) + ": " + name, {
-                 permanent: true,
-                 direction: 'top',
-                 offset: [12, 0],
-                 });
-      markers[waypointCount].coords = latlng;
-      markers[waypointCount].on('mousedown', function(ev){
-      if (markers[waypointCount].locked) {
-        ev.preventDefault();
-        alert("Press the Edit button to modify this waypoint.");
-      }
-      });
-      markers[waypointCount].on('dragend', function(event){
-      markers[waypointCount].coords = event.target.getLatLng();
-      });
-    });
-
-    // --- Utility functions ---
-    function showCoordinates(index) {
-      if (markers[index]) {
-        alert('Coordinates: ' + markers[index].coords.lat.toFixed(5) + ', ' + markers[index].coords.lng.toFixed(5));
-      } else {
-        alert('Please double-click on the map to set the location for waypoint ' + index);
-      }
     }
-
-    var isSaved = false;
-
-    function savePin(index) {
-      var waypointBox = document.querySelector('[data-index="' + index + '"]');
-      var textInputs = waypointBox.querySelectorAll('input[type="text"]');
-
-      // Validate input fields
-      for (var i = 0; i < textInputs.length; i++) {
-      if (textInputs[i].value.trim() === "") {
-        alert("Please complete all fields before saving.");
-        return;
-      }
-      }
-
-      // Check difficulty slider for waypoints beyond the start location
-      if (index > 1) {
-      var difficultySlider = waypointBox.querySelector('.difficulty-slider');
-      if (!difficultySlider || parseInt(difficultySlider.value) < 1) {
-        alert("Please select a difficulty level between 1 and 10.");
-        return;
-      }
-      }
-
-      if (!markers[index] || !markers[index].coords) {
-      alert("Location cannot be saved without selection.");
-      return;
-      }
-      
-      var nameElem = waypointBox.querySelector('.wp-name');
-      var name = nameElem ? nameElem.value : ("Waypoint " + index);
-      
-      // Update marker tooltip title based on type
-      if (index === 1) {
-      markers[index].setTooltipContent("Start Location: " + name);
-      } else if (waypointBox.dataset.last === "true") {
-      markers[index].setTooltipContent("Last Waypoint: " + name);
-      } else {
-      markers[index].setTooltipContent(ordinal(index - 1) + " Waypoint: " + name);
-      }
-      
-      markers[index].locked = true;
-      markers[index].dragging.disable();
-      for (var j = 0; j < textInputs.length; j++) {
-      textInputs[j].disabled = true;
-      }
-      if (index > 1) {
-      var difficultySlider = waypointBox.querySelector('.difficulty-slider');
-      if(difficultySlider) difficultySlider.disabled = true;
-      }
-      var editBtn = waypointBox.querySelector('.btn-edit');
-      editBtn.style.display = 'inline-block';
-      alert("Waypoint saved successfully.");
-      document.getElementById('addWaypointBtn').style.display = 'inline-block';
-      document.getElementById('addLastLocationBtn').style.display = 'inline-block';
-
-      isSaved = true;
-    }
-
-    function editPin(index) {
-      var waypointBox = document.querySelector('[data-index="' + index + '"]');
-      var textInputs = waypointBox.querySelectorAll('input[type="text"]');
-      if (markers[index]) {
-        markers[index].locked = false;
-        markers[index].dragging.enable();
-      }
-      for (var i = 0; i < textInputs.length; i++) {
-        textInputs[i].disabled = false;
-      }
-      if (index > 1) {
-        var difficultySlider = waypointBox.querySelector('.difficulty-slider');
-        if(difficultySlider) difficultySlider.disabled = false;
-      }
-
-      isSaved = true;
-    }
+  
+    markers[i].locked = true;
+    markers[i].dragging.disable();
+    document.querySelectorAll('[data-index="' + i + '"] input').forEach(x => x.disabled = true);
+    document.querySelector('[data-index="' + i + '"] .btn-save-pin').style.display = 'none';
+    document.querySelector('[data-index="' + i + '"] .btn-edit').style.display = 'inline-block';
+    alert('Waypoint saved successfully.');
     
-    function deletePin(index) {
-      if (confirm("Are you sure you want to delete this waypoint?")) {
 
-        if(markers[index]) {
-          map.removeLayer(markers[index]);
-          delete markers[index];
+    document.getElementById('addWaypointBtn').style.display = 'inline-block';
+    document.getElementById('addLastLocationBtn').style.display = 'inline-block';
+  
+    isSaved = true;
+    isEditable = false;
+    currentEditIndex = null;
+  }
+
+  function editPin(i) {
+    if (markers[i]) {
+      markers[i].locked = false;
+      markers[i].dragging.enable();
+      markers[i].on('dragend', function (ev) { markers[i].coords = ev.target.getLatLng(); });
+    }
+    document.querySelectorAll('[data-index="' + i + '"] input').forEach(x => x.disabled = false);
+    var s = document.querySelector('[data-index="' + i + '"] .difficulty-slider');
+    if (s) s.disabled = false;
+    document.querySelector('[data-index="' + i + '"] .btn-edit').style.display = 'none';
+    document.querySelector('[data-index="' + i + '"] .btn-save-pin').style.display = 'inline-block';
+    isEditable = true;
+    isSaved = true;
+    currentEditIndex = i;
+  }
+
+  function deletePin(i) {
+    currentEditIndex = null;
+    isEditable     = false;
+    isSaved        = true;
+  
+    const box = document.querySelector(`[data-index="${i}"]`);
+    if (box && box.dataset.last === 'true') {
+      lastPointCount = Math.max(0, lastPointCount - 1);
+    }
+
+    waypointCount = Math.max(1, waypointCount - 1);
+
+    if (markers[i]) {
+      map.removeLayer(markers[i]);
+      delete markers[i];
+    }
+  
+    if (box) box.remove();
+  
+  }
+  
+
+  map.on('dblclick', function (e) {
+    if (currentEditIndex === null) {
+      alert('Press the Edit button to modify this waypoint.');
+      return;
+    }
+    var i = currentEditIndex;
+    var latlng = e.latlng;
+    if (markers[i]) map.removeLayer(markers[i]);
+    markers[i] = L.marker(latlng, { draggable: true, icon: icon }).addTo(map);
+    markers[i].on('dragend', function (ev) { markers[i].coords = ev.target.getLatLng(); });
+    markers[i].coords = latlng;
+    var name = document.querySelector('[data-index="' + i + '"] .wp-name').value || '';
+    var tooltipText = (i === 1
+      ? 'Start Location: ' + name
+      : (document.querySelector('[data-index="' + i + '"]').dataset.last === 'true'
+          ? 'Last Waypoint: ' + name
+          : ordinal(i - 1) + ' Waypoint: ' + name));
+    markers[i].bindTooltip(tooltipText, { permanent: true, direction: 'top', offset: [12, 0] });
+  });
+
+  function addNewWaypoint() {
+    if (!isSaved) {
+      alert('Please save the current waypoint before adding a new one.');
+      return;
+    }
+    if (lastPointCount >= 1) {
+      alert('You can add a waypoint after the last waypoint!');
+      return;
+    }
+    if (waypointCount > 4) {
+      alert('Maximum 5 waypoints (including Start Point and Last Waypoint)!');
+      return;
+    }
+    waypointCount++;
+    var sb = document.getElementById('sidebar');
+    var box = document.createElement('div');
+    box.className = 'waypoint-box';
+    box.dataset.index = waypointCount;
+    box.innerHTML = `
+      <h3>${ordinal(waypointCount - 1)} Waypoint</h3>
+      <label>Waypoint Name:</label>
+      <input type="text" class="wp-name" placeholder="${ordinal(waypointCount - 1)} Waypoint" />
+      <label>Question:</label>
+      <input type="text" class="wp-question" placeholder="Please enter a question." />
+      <label>Answer:</label>
+      <input type="text" class="wp-answer" placeholder="Please enter an answer." />
+      <label>Hint:</label>
+      <input type="text" class="wp-hint" placeholder="Please enter a hint." />
+      <label>Difficulty Level (1-10):</label>
+      <input type="range" min="1" max="10" class="difficulty-slider" oninput="this.previousElementSibling.innerText=this.value" />
+      <button class="btn-coord" onclick="showCoordinates(${waypointCount})">Show Coordinates</button>
+      <button class="btn-edit" onclick="editPin(${waypointCount})" style="display:none;">Edit</button>
+      <button class="btn-save-pin" onclick="savePin(${waypointCount})">Save</button>
+      <button class="btn-delete" onclick="deletePin(${waypointCount})">Delete</button>
+    `;
+    document.getElementById('locationButtons').before(box);
+    currentEditIndex = waypointCount;
+    isSaved = false;
+  }
+
+  function addLastLocation() {
+    if (!isSaved) { 
+      alert('Please save the current waypoint before adding a new one.');
+      return; 
+    }
+    if (waypointCount >= 5) { 
+      alert('Maximum 5 waypoints allowed in total!'); 
+      return; 
+    }
+    if (document.querySelector('.waypoint-box[data-last="true"]:not([data-index="1"])')) {
+      alert('Cannot add a new waypoint after the last waypoint!');
+      return;
+    }
+    lastPointCount++;
+    waypointCount++;
+  
+    const box = document.createElement('div');
+    box.className = 'waypoint-box';
+    box.dataset.index = waypointCount;
+    box.dataset.last = 'true';
+    box.innerHTML = `
+      <h3>Last Waypoint</h3>
+      <label>Waypoint Name:</label>
+      <input type="text" class="wp-name" placeholder="Last Waypoint" />
+      <label>Question:</label>
+      <input type="text" class="wp-question" placeholder="Please enter a question." />
+      <label>Answer:</label>
+      <input type="text" class="wp-answer" placeholder="Please enter an answer." />
+      <label>Difficulty Level (1-10):</label>
+      <input type="range" min="1" max="10" class="difficulty-slider" 
+             oninput="this.previousElementSibling.innerText=this.value" />
+      <button class="btn-coord" onclick="showCoordinates(${waypointCount})">
+        Show Coordinates
+      </button>
+      <button class="btn-edit" onclick="editPin(${waypointCount})" style="display:none;">
+        Edit
+      </button>
+      <button class="btn-save-pin" onclick="savePin(${waypointCount})">
+        Save
+      </button>
+      <button class="btn-delete" onclick="deletePin(${waypointCount})">
+        Delete
+      </button>
+    `;
+    document.getElementById('locationButtons').before(box);
+    currentEditIndex = waypointCount;
+    isSaved = false;
+  }
+
+  function toggleGamePanel() {
+    var p = document.getElementById('gameInfoPanel');
+    var a = document.getElementById('arrow');
+    p.classList.toggle('collapsed');
+    a.innerHTML = p.classList.contains('collapsed') ? '▶' : '◀';
+  }
+
+  function searchLocation() {
+    var q = document.getElementById('searchInput').value;
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d[0]) {
+          map.setView([d[0].lat, d[0].lon], 16);
+        } else {
+          alert('Location not found');
         }
-        var waypointBox = document.querySelector('[data-index="' + index + '"]');
-        if(waypointBox) {
-          waypointBox.parentNode.removeChild(waypointBox);
-        }
-      }
+      });
+  }
 
-      isSaved = true;
-    }
-
-    function addNewWaypoint() {
-      if (isSaved == false) {
-        alert("Please save the current waypoint before adding a new one.");
-        return;
-      }
-      
-      if (lastPointCount >= 1) {
-        alert("You can add a waypoint after the last waypoint!");
-        return;
-      }
-
-      if (waypointCount > 4) {
-        alert("Maximum 5 waypoints (including Start Point and Last Waypoint)!");
-        return;
-      }
-
-      waypointCount++;
-      
-      var sidebar = document.getElementById('sidebar');
-      var waypointBox = document.createElement('div');
-      waypointBox.className = 'waypoint-box';
-      waypointBox.setAttribute('data-index', waypointCount);
-      waypointBox.innerHTML = `
-        <h3>${ordinal(waypointCount - 1)} Waypoint</h3>
-        <label>Waypoint Name:</label>
-        <input type="text" class="wp-name" placeholder="${ordinal(waypointCount - 1)} Waypoint" />
-        <label>Question:</label>
-        <input type="text" placeholder="Please enter a question." />
-        <label>Answer:</label>
-        <input type="text" placeholder="Please enter an answer." />
-        <label>Hint:</label>
-        <input type="text" placeholder="Please enter a hint." />
-
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <label style="margin-bottom: 0;">Difficulty Level (1-10):
-            <span class="difficulty-value">0</span>
-          </label>
-          <input type="range" min="0" max="10" value="0" class="difficulty-slider"
-                 oninput="this.previousElementSibling.querySelector('.difficulty-value').innerText = this.value" />
-        </div>
-
-        <button class="btn-coord" onclick="showCoordinates(${waypointCount})">Show the Coordinates</button>
-        <button class="btn-edit" onclick="editPin(${waypointCount})" style="display:none;">Edit</button>
-        <button class="btn-save-pin" onclick="savePin(${waypointCount})">Save</button>
-        <button class="btn-delete" onclick="deletePin(${waypointCount})">Delete</button>
-      `;
-      var locationButtons = document.getElementById('locationButtons');
-      locationButtons.parentNode.insertBefore(waypointBox, locationButtons);
-
-      isSaved = false;
-    }
-
-    function addLastLocation() {
-      if (isSaved === false) {
-        alert("Please save the current waypoint before adding a new one.");
-        return;
-      }
-
-      if (lastPointCount === 1) {
-        alert("Only one Last Waypoint!");
-        return;
-      }
-      
-      lastPointCount++;
-
-      if (waypointCount > 5) {
-        alert("Maximum 5 waypoints (including Start Point and Last Waypoint)!");
-        return;
-      }
-
-      waypointCount++;
-
-      var sidebar = document.getElementById('sidebar');
-      var waypointBox = document.createElement('div');
-      waypointBox.className = 'waypoint-box';
-      waypointBox.setAttribute('data-index', waypointCount);
-
-      waypointBox.dataset.last = "true";
-      waypointBox.innerHTML = `
-        <h3>Last Waypoint</h3>
-        <label>Waypoint Name:</label>
-        <input type="text" class="wp-name" placeholder="Last Waypoint" />
-        <label>Question:</label>
-        <input type="text" placeholder="Please enter a question." />
-        <label>Answer:</label>
-        <input type="text" placeholder="Please enter an answer." />
-
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <label style="margin-bottom: 0;">Difficulty Level (1-10):
-            <span class="difficulty-value">0</span>
-          </label>
-          <input type="range" min="0" max="10" value="0" class="difficulty-slider"
-                 oninput="this.previousElementSibling.querySelector('.difficulty-value').innerText = this.value" />
-        </div>
-
-        <button class="btn-coord" onclick="showCoordinates(${waypointCount})">Show the Coordinates</button>
-        <button class="btn-edit" onclick="editPin(${waypointCount})" style="display:none;">Edit</button>
-        <button class="btn-save-pin" onclick="savePin(${waypointCount})">Save</button>
-        <button class="btn-delete" onclick="deletePin(${waypointCount})">Delete</button>
-      `;
-      var locationButtons = document.getElementById('locationButtons');
-      locationButtons.parentNode.insertBefore(waypointBox, locationButtons);
-
-      isSaved = false;
-    }
-
-    function toggleGamePanel() {
-      const panel = document.getElementById("gameInfoPanel");
-      const arrow = document.getElementById("arrow");
-      panel.classList.toggle("collapsed");
-      arrow.innerHTML = panel.classList.contains("collapsed") ? "&#10095;" : "&#10094;";
-    }
-    function searchLocation(){
-      const query = document.getElementById('searchInput').value;
-      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`)
-        .then(response => response.json())
-        .then(data => {
-          if (data[0]) {
-            map.setView([data[0].lat, data[0].lon], 16);
-          } else {
-            alert("Location not found");
-          }
-        });
-    }
-  </script>
+  document.getElementById('saveGameBtn').addEventListener('click', function () {
+    var out = [];
+    document.querySelectorAll('.waypoint-box').forEach(function (box) {
+      var i = box.dataset.index;
+      var id = box.dataset.id || null;
+      var n = box.querySelector('.wp-name').value.trim();
+      var h = (box.querySelector('.wp-hint')||{}).value || '';
+      var q = (box.querySelector('.wp-question')||{}).value || '';
+      var a = (box.querySelector('.wp-answer')||{}).value || '';
+      var d = (box.querySelector('.difficulty-slider')||{}).value || 0;
+      var c = markers[i] && markers[i].coords;
+      if (!c) return;
+      out.push({
+        id: id,
+        name: n,
+        hint: h,
+        question: q,
+        answer: a,
+        difficulty: d,
+        lat: c.lat,
+        lon: c.lng,
+        is_last: box.dataset.last === 'true'
+      });
+    });
+    document.getElementById('waypointsData').value = JSON.stringify(out);
+    document.getElementById('gameInfoForm').submit();
+  });
+</script>
+</body>
 </body>
 </html>
