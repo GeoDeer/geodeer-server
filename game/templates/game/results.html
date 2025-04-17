@@ -10,7 +10,6 @@
       margin: 0;
       font-family: "Times New Roman", Times, serif;
     }
-
     .header {
       background-color: #296B45;
       padding: 10px 20px;
@@ -18,32 +17,22 @@
       justify-content: space-between;
       align-items: center;
     }
-
     .header h2 {
       margin: 0;
       font-weight: bold;
       color: white;
     }
-
-    .user-dropdown {
-      position: relative;
-      display: inline-block;
-    }
-
     .user-dropdown select {
       padding: 10px;
     }
-
     .main {
       display: flex;
       justify-content: space-between;
       padding: 30px;
     }
-
     .left-panel {
       width: 50%;
     }
-
     .right-panel {
       width: 50%;
       display: flex;
@@ -52,37 +41,31 @@
       justify-content: flex-start;
       padding-top: 60px;
     }
-
     table {
       width: 80%;
       border-collapse: collapse;
       margin-top: 60px;
     }
-
     th {
-        border: 3px solid black;
-        text-align: center;
-        padding: 50px;
-        font-size: 30px;
-        font-weight: 900;
+      border: 3px solid black;
+      text-align: center;
+      padding: 30px;
+      font-size: 24px;
+      font-weight: 900;
     }
-
     td {
       border: 3px solid black;
       text-align: center;
-      padding: 50px;
-      font-size: 25px;
-      font-weight: normal;
+      padding: 30px;
+      font-size: 22px;
     }
-
     .game-info {
       font-weight: bold;
-      margin-top: 50px;
-      font-size: 30px;
+      margin-top: 30px;
+      font-size: 26px;
     }
-
     .back-button {
-      margin-top: 50px;
+      margin-top: 40px;
       background-color: #FF7F50;
       border: none;
       padding: 10px 15px;
@@ -91,22 +74,18 @@
       cursor: pointer;
       font-size: 16px;
     }
-
-    .congrats {
-      text-align: center;
-      font-size: 1.5em;
+    #speed-chart {
+      width: 100%;
+      height: 400px;
     }
-
-    .congrats img {
-      width: 600px;
-      margin-bottom: 10px;
-    }
-
     .winner-name {
+      margin-top: 40px;
+      font-size: 26px;
       font-weight: bold;
-      font-size: 1.2em;
+      text-align: center;
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 </head>
 <body>
   <div class="header">
@@ -118,42 +97,67 @@
       </select>
     </div>
   </div>
-
   <div class="main">
-    <!-- Left Panel -->
     <div class="left-panel">
       <div class="game-info">
         <div><strong>{{ game.name }}</strong></div>
         <div>{{ game.date }}</div>
       </div>
       <table>
-        <tr>
-          <th>Player</th>
-          <th>Score</th>
-        </tr>
+        <tr><th>Player</th><th>Score</th></tr>
         {% for player in players %}
-        <tr>
-          <td>{{ player.username }}</td>
-          <td>{{ player.score }}</td>
-        </tr>
+        <tr><td>{{ player.username }}</td><td>{{ player.score }}</td></tr>
         {% endfor %}
       </table>
       <button class="back-button" onclick="goBack()">Back to Main Menu</button>
     </div>
-
-    <!-- Right Panel -->
     <div class="right-panel">
-      <div class="congrats">
-        <img src="{% static 'images/congratulations.png' %}" alt="Congratulations" />
-        <div class="winner-name">Congratulations! {{ winner.username|upper }}</div>
-      </div>
+      <div id="speed-chart"></div>
+      <div class="winner-name">Congratulations! {{ winner.username|upper }}</div>
     </div>
   </div>
-
   <script>
     function goBack() {
       window.location.href = "{% url 'main_menu' %}";
     }
+
+    const speedData = JSON.parse(`{{ speed_data|safe }}`);
+
+    const chart = echarts.init(document.getElementById('speed-chart'));
+
+    const series = speedData.players.map(player => ({
+      name: player.name,
+      type: 'line',
+      data: player.speeds,
+      smooth: true
+    }));
+
+    const option = {
+      title: {
+        text: 'Average Speed (Every 10 Minutes)',
+        left: 'center'
+      },
+      tooltip: {
+        trigger: 'axis'
+      },
+      legend: {
+        data: speedData.players.map(p => p.name),
+        top: 30
+      },
+      xAxis: {
+        type: 'category',
+        data: speedData.labels,
+        name: 'Time'
+      },
+      yAxis: {
+        type: 'value',
+        name: 'Speed (m/s)',
+        min: 0
+      },
+      series: series
+    };
+
+    chart.setOption(option);
   </script>
 </body>
 </html>
