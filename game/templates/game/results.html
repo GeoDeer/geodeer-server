@@ -60,11 +60,11 @@
     }
 
     th {
-        border: 3px solid black;
-        text-align: center;
-        padding: 50px;
-        font-size: 30px;
-        font-weight: 900;
+      border: 3px solid black;
+      text-align: center;
+      padding: 50px;
+      font-size: 30px;
+      font-weight: 900;
     }
 
     td {
@@ -72,7 +72,6 @@
       text-align: center;
       padding: 50px;
       font-size: 25px;
-      font-weight: normal;
     }
 
     .game-info {
@@ -92,21 +91,19 @@
       font-size: 16px;
     }
 
-    .congrats {
-      text-align: center;
-      font-size: 1.5em;
-    }
-
-    .congrats img {
-      width: 600px;
-      margin-bottom: 10px;
+    #speed-chart {
+      width: 100%;
+      height: 400px;
     }
 
     .winner-name {
+      margin-top: 40px;
+      font-size: 26px;
       font-weight: bold;
-      font-size: 1.2em;
+      text-align: center;
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 </head>
 <body>
   <div class="header">
@@ -143,10 +140,8 @@
 
     <!-- Right Panel -->
     <div class="right-panel">
-      <div class="congrats">
-        <img src="{% static 'images/congratulations.png' %}" alt="Congratulations" />
-        <div class="winner-name">Congratulations! {{ winner.username|upper }}</div>
-      </div>
+      <div id="speed-chart"></div>
+      <div class="winner-name">Congratulations! {{ winner.username|upper }}</div>
     </div>
   </div>
 
@@ -154,6 +149,45 @@
     function goBack() {
       window.location.href = "{% url 'main_menu' %}";
     }
+
+    // Backend'den gelen JSON string verisini parse et
+    const speedData = JSON.parse(`{{ speed_data|safe }}`);
+
+    const chart = echarts.init(document.getElementById('speed-chart'));
+
+    const series = speedData.players.map(player => ({
+      name: player.name,
+      type: 'line',
+      data: player.speeds,
+      smooth: true
+    }));
+
+    const option = {
+      title: {
+        text: 'Average Speed (Every 10 Minutes)',
+        left: 'center'
+      },
+      tooltip: {
+        trigger: 'axis'
+      },
+      legend: {
+        data: speedData.players.map(p => p.name),
+        top: 30
+      },
+      xAxis: {
+        type: 'category',
+        data: speedData.labels,
+        name: 'Time'
+      },
+      yAxis: {
+        type: 'value',
+        name: 'Speed (m/s)',
+        min: 0
+      },
+      series: series
+    };
+
+    chart.setOption(option);
   </script>
 </body>
 </html>
