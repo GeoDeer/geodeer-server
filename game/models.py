@@ -43,6 +43,7 @@ class Waypoint(models.Model):
     waypoint_id = models.BigAutoField(primary_key=True)
     game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='waypoints')
     waypoint_name = models.CharField(max_length=255)
+    is_last = models.BooleanField(default=False)
     lat = models.FloatField()
     lon = models.FloatField()
     height = models.FloatField()
