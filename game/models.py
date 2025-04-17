@@ -46,7 +46,7 @@ class Waypoint(models.Model):
     is_last = models.BooleanField(default=False)
     lat = models.FloatField()
     lon = models.FloatField()
-    height = models.FloatField()
+    height = models.FloatField(null=True, blank=True)
     hint = models.TextField()
     question = models.TextField()
     answer = models.TextField()
