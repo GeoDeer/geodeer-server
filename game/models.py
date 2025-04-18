@@ -118,8 +118,8 @@ class UserLocation(models.Model):
                 self.distance = prev_geom.distance(curr_geom)
 
                 if self.time_diff and self.time_diff > 0:
-                    self.speed = self.distance / self.time_diff
-
+                    self.speed = (self.distance / 1000) / self.time_diff
+        
         super().save(*args, **kwargs)
 
     def __str__(self):
