@@ -18,9 +18,9 @@ urlpatterns = [
     path('userlocations/create/', views.create_user_location, name='create_user_location'),
     path('userlocations/<int:pk>/', views.user_location_detail, name='user_location_detail'),
 
-    path('userdistances/', views.get_user_distance, name='get_user_distance'),
-    path('userdistances/create/', views.create_user_distance, name='create_user_distance'),
-    path('userdistances/<int:pk>/', views.user_distance_detail, name='user_distance_detail'),
+    # path('userdistances/', views.get_user_distance, name='get_user_distance'),
+    # path('userdistances/create/', views.create_user_distance, name='create_user_distance'),
+    # path('userdistances/<int:pk>/', views.user_distance_detail, name='user_distance_detail'),
 
     path('userscores/', views.get_user_score, name='get_user_score'),
     path('userscores/create/', views.create_user_score, name='create_user_score'),

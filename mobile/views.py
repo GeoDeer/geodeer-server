@@ -2,7 +2,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from game.models import *
-from .serializer import UserSerializer, GameSerializer, WaypointSerializer, UserLocationSerializer, UserDistanceSerializer, UserScoreSerializer
+from .serializer import UserSerializer, GameSerializer, WaypointSerializer, UserLocationSerializer, UserScoreSerializer
 
 @api_view(['GET'])
 def get_user(request):
@@ -148,41 +148,41 @@ def user_location_detail(request, pk):
         user_location.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-@api_view(['GET'])
-def get_user_distance(request):
-    user_distances = UserDistance.objects.all()
-    serializer = UserDistanceSerializer(user_distances, many=True)
-    return Response(serializer.data)
+# @api_view(['GET'])
+# def get_user_distance(request):
+#     user_distances = UserDistance.objects.all()
+#     serializer = UserDistanceSerializer(user_distances, many=True)
+#     return Response(serializer.data)
 
-@api_view(['POST'])
-def create_user_distance(request):
-    serializer = UserDistanceSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+# @api_view(['POST'])
+# def create_user_distance(request):
+#     serializer = UserDistanceSerializer(data=request.data)
+#     if serializer.is_valid():
+#         serializer.save()
+#         return Response(serializer.data, status=status.HTTP_201_CREATED)
+#     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['GET', 'PUT', 'DELETE'])
-def user_distance_detail(request, pk):
-    try:
-        user_distance = UserDistance.objects.get(id=pk)
-    except UserDistance.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
+# @api_view(['GET', 'PUT', 'DELETE'])
+# def user_distance_detail(request, pk):
+#     try:
+#         user_distance = UserDistance.objects.get(id=pk)
+#     except UserDistance.DoesNotExist:
+#         return Response(status=status.HTTP_404_NOT_FOUND)
 
-    if request.method == 'GET':
-        serializer = UserDistanceSerializer(user_distance)
-        return Response(serializer.data)
+#     if request.method == 'GET':
+#         serializer = UserDistanceSerializer(user_distance)
+#         return Response(serializer.data)
 
-    elif request.method == 'PUT':
-        serializer = UserDistanceSerializer(user_distance, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#     elif request.method == 'PUT':
+#         serializer = UserDistanceSerializer(user_distance, data=request.data)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response(serializer.data)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    elif request.method == 'DELETE':
-        user_distance.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+#     elif request.method == 'DELETE':
+#         user_distance.delete()
+#         return Response(status=status.HTTP_204_NO_CONTENT)
 
 @api_view(['GET'])
 def get_user_score(request):

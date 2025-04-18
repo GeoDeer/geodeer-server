@@ -3,6 +3,8 @@ from django.contrib.gis.geos import GEOSGeometry
 
 import random
 from datetime import datetime
+from django.utils import timezone
+from django.contrib.gis.geos import Point
 
 class User(models.Model):
     user_id = models.BigAutoField(primary_key=True)
@@ -39,6 +41,7 @@ class Game(models.Model):
         if not self.invite_id:
             self.invite_id = self.generate_invite_id()
             super().save(update_fields=['invite_id'])
+            
 class Waypoint(models.Model):
     waypoint_id = models.BigAutoField(primary_key=True)
     game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='waypoints')
@@ -82,19 +85,55 @@ class UserLocation(models.Model):
     game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='locations')
     lat = models.FloatField()
     lon = models.FloatField()
-    location_geom = models.PointField()
+    location_geom = models.PointField(blank=True, null=True)
+    time = models.DateTimeField(default=timezone.now)
+    time_diff = models.FloatField(blank=True, null=True)
+    distance = models.FloatField(blank=True, null=True)
+    speed = models.FloatField(blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        if not self.location_geom and self.lat is not None and self.lon is not None:
+            self.location_geom = Point(self.lon, self.lat, srid=4326)
+
+        is_new = self.pk is None
+        if is_new:
+            previous = (
+                UserLocation.objects
+                .filter(user=self.user, game=self.game)
+                .order_by('-time')
+                .first()
+            )
+            if previous:
+                delta = self.time - previous.time
+                self.time_diff = delta.total_seconds() / 3600.0
+                
+                prev_geom = previous.location_geom.clone()
+                prev_geom.srid = 4326
+                prev_geom.transform(3857)
+
+                curr_geom = self.location_geom.clone()
+                curr_geom.srid = 4326
+                curr_geom.transform(3857)
+
+                self.distance = prev_geom.distance(curr_geom)
+
+                if self.time_diff and self.time_diff > 0:
+                    self.speed = self.distance / self.time_diff
+
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return  self.user_id
+        return f"{self.user.username} @ {self.time.isoformat()}"
 
-class UserDistance(models.Model):
-    user= models.ForeignKey(User, on_delete=models.CASCADE, related_name='distances')
-    game= models.ForeignKey(Game, on_delete=models.CASCADE, related_name='distances')
-    distance = models.FloatField()
-    time_diff = models.FloatField() # birimlerine göre değiştirilebilir sadece bu değil bütün floatfieldlar için geçerli
 
-    def __str__(self):
-        return self.user
+# class UserDistance(models.Model):
+#     user= models.ForeignKey(User, on_delete=models.CASCADE, related_name='distances')
+#     game= models.ForeignKey(Game, on_delete=models.CASCADE, related_name='distances')
+#     distance = models.FloatField()
+#     time_diff = models.FloatField() # birimlerine göre değiştirilebilir sadece bu değil bütün floatfieldlar için geçerli
+
+#     def __str__(self):
+#         return self.user
 
 class UserScore(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='scores')
