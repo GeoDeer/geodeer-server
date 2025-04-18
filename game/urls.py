@@ -6,5 +6,6 @@ urlpatterns = [
     path('register/', views.register_view, name='register'),
     path('main-menu/<int:creator_id>', views.main_menu, name='main_menu'),
     path('create-manage/<int:creator_id>/<int:game_id>/', views.create_manage, name='create_manage'),
-    path('monitor/<int:pk>/<int:creator_id>/', views.monitor, name='monitor'), 
+    path('monitor/<int:pk>/<int:creator_id>/', views.monitor, name='monitor'),
+    path('results/<int:game_id>/', views.results, name='results'), 
 ]

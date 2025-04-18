@@ -117,9 +117,9 @@
     </div>
   </div>
   <script>
-    function goBack() {
+    {% comment %} function goBack() {
       window.location.href = "{% url 'main_menu' %}";
-    }
+    } {% endcomment %}
 
     const speedData = JSON.parse(`{{ speed_data|safe }}`);
 

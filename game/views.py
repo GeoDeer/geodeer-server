@@ -242,3 +242,36 @@ def monitor(request, pk, creator_id):
         'game': game,
         'waypoints': waypoints
     })
+
+def results(request, game_id):
+    game = get_object_or_404(Game, pk=game_id)
+    user_scores = UserScore.objects.filter(game=game).select_related('user')
+    players = []
+    
+    for score in user_scores:
+        uid = score.user.user_id
+        user_locs = list(UserLocation.objects.filter(game=game, user=score.user).order_by('-pk')[:10])
+        user_locs.reverse()  
+        latest = user_locs[-1] if user_locs else None
+        path = [{'lat': loc.lat, 'lon': loc.lon} for loc in user_locs]  
+        player = {
+            'id': uid,
+            'name': score.user.username,
+            'score': score.total_score,
+            'lat': latest.lat if latest else None,
+            'lon': latest.lon if latest else None,  
+            'path': path,
+            'disqualified': score.is_disqualified
+        }
+        players.append(player)
+
+    sorted_players = sorted(players, key=lambda p: p['id'])
+    available_colors = ['cyan', 'red', 'purple', 'yellow']
+    
+    for i, player in enumerate(sorted_players):
+        player['icon'] = available_colors[i % len(available_colors)]
+
+    return render(request, 'game/results.html', {
+        'players': sorted_players,
+        'game': game
+    })
