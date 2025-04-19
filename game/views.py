@@ -5,6 +5,7 @@ from django.contrib.auth import login
 from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.auth.models import User
 from django.contrib.gis.geos import Point
+from django.utils import timezone
 from .models import Game, UserScore, UserLocation, Waypoint, User
 
 import datetime
@@ -60,8 +61,29 @@ def register_view(request):
     return redirect("auth_page")
 
 def main_menu(request, creator_id):
+    if request.method == 'POST':
+        if 'delete_game' in request.POST:
+            game_id = request.POST.get('delete_game')
+            Game.objects.filter(
+                game_id=game_id,
+                game_creator_id=creator_id
+            ).delete()
+            return redirect('main_menu', creator_id=creator_id)
+        
+        new_game = Game.objects.create(
+            game_creator_id=creator_id,
+            game_name=f'game_{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}',
+            start_date_time=datetime.datetime.now(),
+            number_of_players=2,
+            time=3600
+        )
+        return redirect('create_manage', creator_id=creator_id, game_id=new_game.game_id)
+
     games = Game.objects.filter(game_creator_id=creator_id).order_by('-start_date_time')
-    return render(request, 'game/main_menu.html', {'games': games})
+    return render(request, 'game/main_menu.html', {
+        'games': games,
+        'creator_id': creator_id
+    })
 
 def create_manage(request, creator_id, game_id):
     game = Game.objects.filter(game_id=game_id, game_creator_id=creator_id).first()
