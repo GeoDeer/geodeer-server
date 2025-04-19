@@ -85,6 +85,12 @@ def main_menu(request, creator_id):
         'creator_id': creator_id
     })
 
+import json
+import datetime
+from django.shortcuts import get_object_or_404, redirect, render
+from .models import Game, Waypoint
+from django.contrib.auth.models import User
+
 def create_manage(request, creator_id, game_id):
     game = Game.objects.filter(game_id=game_id, game_creator_id=creator_id).first()
 
@@ -98,20 +104,22 @@ def create_manage(request, creator_id, game_id):
         start_dt = None
         if start_date_str and start_time_str:
             try:
-                start_dt = datetime.datetime.strptime(f"{start_date_str} {start_time_str}", "%Y/%m/%d %H:%M:%S")
+                start_dt = datetime.datetime.strptime(
+                    f"{start_date_str} {start_time_str}",
+                    "%Y/%m/%d %H:%M:%S"
+                )
             except ValueError:
                 start_dt = None
-
+                
         try:
             number_of_players = float(number_of_players_str)
         except ValueError:
             number_of_players = 0
-
         try:
             time_float = float(time_str)
         except ValueError:
             time_float = 0
-
+            
         if game:
             game.game_name = game_name
             if start_dt:
@@ -122,20 +130,19 @@ def create_manage(request, creator_id, game_id):
         else:
             creator = get_object_or_404(User, id=creator_id)
             game = Game.objects.create(
-                game_name=game_name,
-                start_date_time=start_dt,
-                number_of_players=number_of_players,
-                time=time_float,
-                game_creator=creator,
+                game_name = game_name,
+                start_date_time = start_dt,
+                number_of_players = number_of_players,
+                time = time_float,
+                game_creator = creator,
             )
 
         waypoints_data = request.POST.get('waypoints_data', '[]')
-        
         try:
             wps = json.loads(waypoints_data)
         except json.JSONDecodeError:
             wps = []
-            
+
         deleted_ids = json.loads(request.POST.get('deleted_ids', '[]'))
         if deleted_ids:
             Waypoint.objects.filter(
@@ -143,51 +150,52 @@ def create_manage(request, creator_id, game_id):
                 waypoint_id__in=deleted_ids
             ).delete()
 
-        # sent_ids = [wp['id'] for wp in wps if wp.get('id')]
-        # game.waypoints.exclude(waypoint_id__in=sent_ids).delete()
-        
-        if waypoints_data:
-            data = json.loads(waypoints_data)
-            kept_ids = set()
-            for wp in data:
-                wp_id = wp.get('id')
-                if wp_id:
-                    waypoint = Waypoint.objects.filter(pk=wp_id, game=game).first()
-                    if waypoint:
-                        waypoint.waypoint_name = wp['name']
-                        waypoint.hint = wp['hint']
-                        waypoint.question = wp['question']
-                        waypoint.answer = wp['answer']
-                        waypoint.ques_dif_level = float(wp['difficulty'] or 0)
-                        waypoint.lat = float(wp['lat'])
-                        waypoint.lon = float(wp['lon'])
-                        waypoint.save()
-                        kept_ids.add(waypoint.pk)
-                else:
-                    new_wp = Waypoint.objects.create(
-                        game=game,
-                        waypoint_name=wp['name'],
-                        lat=float(wp['lat']),
-                        lon=float(wp['lon']),
-                        hint=wp['hint'],
-                        question=wp['question'],
-                        answer=wp['answer'],
-                        ques_dif_level=float(wp['difficulty'] or 0),
-                    )
-                    kept_ids.add(new_wp.pk)
-            game.waypoints.exclude(pk__in=kept_ids).delete()
+        Waypoint.objects.filter(game=game).update(is_last=False)
+
+        kept_ids = set()
+        for wp in wps:
+            wp_id   = wp.get('id')
+            is_last = bool(wp.get('is_last', False))
+
+            if wp_id:
+                waypoint = Waypoint.objects.filter(pk=wp_id, game=game).first()
+                if waypoint:
+                    waypoint.waypoint_name  = wp.get('name', '')
+                    waypoint.hint           = wp.get('hint', '')
+                    waypoint.question       = wp.get('question', '')
+                    waypoint.answer         = wp.get('answer', '')
+                    waypoint.ques_dif_level = float(wp.get('difficulty') or 0)
+                    waypoint.lat            = float(wp.get('lat'))
+                    waypoint.lon            = float(wp.get('lon'))
+                    waypoint.is_last        = is_last
+                    waypoint.save()
+                    kept_ids.add(waypoint.pk)
+            else:
+                new_wp = Waypoint.objects.create(
+                    game            = game,
+                    waypoint_name   = wp.get('name', ''),
+                    lat             = float(wp.get('lat')),
+                    lon             = float(wp.get('lon')),
+                    hint            = wp.get('hint', ''),
+                    question        = wp.get('question', ''),
+                    answer          = wp.get('answer', ''),
+                    ques_dif_level  = float(wp.get('difficulty') or 0),
+                    is_last         = is_last,
+                )
+                kept_ids.add(new_wp.pk)
+
+        game.waypoints.exclude(pk__in=kept_ids).delete()
 
         return redirect('create_manage', creator_id=creator_id, game_id=game.game_id)
-
+    
     context = {
-        'creator_id': creator_id,
-        'game_id': game_id,
-        'game': game,
-        'waypoint_count': game.waypoints.count(),
-        'last_point_count': game.waypoints.filter(is_last=True).count(),
+        'creator_id':      creator_id,
+        'game_id':         game_id,
+        'game':            game,
+        'waypoint_count':  game.waypoints.count(),
+        'last_point_count':game.waypoints.filter(is_last=True).count(),
     }
     return render(request, 'game/create_manage.html', context)
-
 
 def ordinal(n):
     if 11 <= (n % 100) <= 13:
