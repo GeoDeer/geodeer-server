@@ -264,27 +264,29 @@
     <div id="sidebar">
       <h2>Waypoint Locations</h2>
       {% for wp in game.waypoints.all %}
-        <div class="waypoint-box" data-index="{{ forloop.counter }}" data-id="{{ wp.waypoint_id }}"
-             {% if not forloop.first and forloop.last %}data-last="true"{% endif %}>
-        <h3>
-          {% if forloop.first %}Start Location{% elif forloop.last %}Last Waypoint{% else %}{{ forloop.counter|add:"-1" }}. Waypoint{% endif %}
-        </h3>
+      <div class="waypoint-box"
+           data-index="{{ forloop.counter }}"
+           data-id="{{ wp.waypoint_id }}"
+           data-last="{{ wp.is_last|yesno:'true,false' }}">
+        <h3 class="wp-title"></h3>
         <label>Waypoint Name:</label>
-        <input type="text" class="wp-name" name="ignore" value="{{ wp.waypoint_name }}" disabled />
-        {% if not forloop.first %}
-        <label>Question:</label>
-        <input type="text" class="wp-question" name="ignore" value="{{ wp.question }}" disabled />
-        <label>Answer:</label>
-        <input type="text" class="wp-answer" name="ignore" value="{{ wp.answer }}" disabled />
-        <label>Hint:</label>
-        <input type="text" class="wp-hint" name="ignore" value="{{ wp.hint }}" disabled />
-        <label>Difficulty Level (1-10):</label>
-        <input type="range" min="1" max="10" class="difficulty-slider" name="ignore" value="{{ wp.ques_dif_level }}" disabled />
+        <input type="text" class="wp-name" value="{{ wp.waypoint_name }}" disabled />
+        {% if forloop.first %}
+          <label>Double clicks must be made on the map to select a location.</label>
         {% else %}
-        <label>Hint:</label>
-        <input type="text" class="wp-hint" name="ignore" value="{{ wp.hint }}" disabled />
-        <label>NOTE: Start Location is fixed!</label>
-        <label>Double clicks must be made on the map to select a location.</label>
+          <label>Question:</label>
+          <input type="text" class="wp-question" value="{{ wp.question }}" disabled />
+    
+          <label>Answer:</label>
+          <input type="text" class="wp-answer" value="{{ wp.answer }}" disabled />
+          {% if not wp.is_last %}
+            <label>Hint:</label>
+            <input type="text" class="wp-hint" value="{{ wp.hint }}" disabled />
+          {% endif %}
+          <label>Difficulty Level (1-10):</label>
+          <input type="range" min="1" max="10"
+                 class="difficulty-slider"
+                 value="{{ wp.ques_dif_level }}" disabled />
         {% endif %}
         <button class="btn-coord" onclick="showCoordinates({{ forloop.counter }})">Show Coordinates</button>
         <button class="btn-edit" onclick="editPin({{ forloop.counter }})">Edit</button>
@@ -298,9 +300,6 @@
           <h3>Start Location</h3>
           <label>Waypoint Name:</label>
           <input type="text" class="wp-name" disabled />
-          <label>Hint:</label>
-          <input type="text" class="wp-hint" disabled />
-          <label>NOTE: Start Location is fixed!</label>
           <label>Double clicks must be made on the map to select a location.</label>
           <button class="btn-coord" onclick="showCoordinates(1)">Show Coordinates</button>
           <button class="btn-edit" onclick="editPin(1)">Edit</button>
@@ -329,9 +328,9 @@
     <button id="saveGameBtn" type="button" class="save-game-btn">Save Game</button>
   </div>
   <div id="gameInfoPanel" class="game-info-panel">
-    <div class="toggle-handle" onclick="toggleGamePanel()">
+    {% comment %} <div class="toggle-handle" onclick="toggleGamePanel()">
       <span id="arrow">&#10095;</span>
-    </div>
+    </div> {% endcomment %}
     <h2>General Information</h2>
     <div class="info-content">
       <form id="gameInfoForm" method="post">
@@ -360,7 +359,8 @@
 <script>
   var isSaved = true;
   var isEditable = false;
-  let waypointCount = {{ waypoint_count }};
+
+  let waypointCount = {{ waypoint_count }} > 0 ? {{ waypoint_count }} : 1;
   let hasInitialLast = {{ last_point_count }} > 0;
   let lastPointCount = {{ last_point_count }};
 
@@ -379,6 +379,25 @@
     return n + s;
   }
 
+  function updateTitles() {
+    document.querySelectorAll('.waypoint-box').forEach(box => {
+      const idx = Number(box.dataset.index);
+      const isLast = box.dataset.last === 'true';
+      const title = box.querySelector('.wp-title');
+      if (!title) return;
+  
+      if (idx === 1) {
+        title.textContent = 'Start Location';
+      } else if (isLast) {
+        title.textContent = 'Last Waypoint';
+      } else {
+        title.textContent = ordinal(idx - 1) + ' Waypoint';
+      }
+    });
+  }
+  
+  document.addEventListener('DOMContentLoaded', updateTitles);
+
   var icon = L.icon({
     iconUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png',
     shadowUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png'
@@ -391,7 +410,7 @@
   });
   var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     maxZoom: 19,
-    attribution: 'Tiles © Esri'
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye'
   });
   osmLayer.addTo(map);
 
@@ -446,7 +465,6 @@
     document.querySelector('[data-index="' + i + '"] .btn-edit').style.display = 'inline-block';
     alert('Waypoint saved successfully.');
     
-
     document.getElementById('addWaypointBtn').style.display = 'inline-block';
     document.getElementById('addLastLocationBtn').style.display = 'inline-block';
   
@@ -456,6 +474,11 @@
   }
 
   function editPin(i) {
+    if (!isSaved) {
+      alert('Please save the current waypoint before editing another one.');
+      return;
+    }
+
     if (markers[i]) {
       markers[i].locked = false;
       markers[i].dragging.enable();
@@ -467,14 +490,19 @@
     document.querySelector('[data-index="' + i + '"] .btn-edit').style.display = 'none';
     document.querySelector('[data-index="' + i + '"] .btn-save-pin').style.display = 'inline-block';
     isEditable = true;
-    isSaved = true;
+    isSaved    = false;
     currentEditIndex = i;
   }
 
   function deletePin(i) {
+    if (!isSaved) {
+      alert('Please save the current waypoint before deleting another one.');
+      return;
+    }
+    
     currentEditIndex = null;
-    isEditable     = false;
-    isSaved        = true;
+    isEditable = false;
+    isSaved = true;
   
     const box = document.querySelector(`[data-index="${i}"]`);
     if (box && box.dataset.last === 'true') {
@@ -516,21 +544,25 @@
       alert('Please save the current waypoint before adding a new one.');
       return;
     }
+
     if (lastPointCount >= 1) {
       alert('You can add a waypoint after the last waypoint!');
       return;
     }
-    if (waypointCount > 4) {
-      alert('Maximum 5 waypoints (including Start Point and Last Waypoint)!');
+
+    if (waypointCount > 5) {
+      alert('Maximum 6 waypoints (including Start Point and Last Waypoint)!');
       return;
     }
+
     waypointCount++;
     var sb = document.getElementById('sidebar');
     var box = document.createElement('div');
     box.className = 'waypoint-box';
     box.dataset.index = waypointCount;
+    box.dataset.last  = 'false';
     box.innerHTML = `
-      <h3>${ordinal(waypointCount - 1)} Waypoint</h3>
+      <h3 class="wp-title"></h3>
       <label>Waypoint Name:</label>
       <input type="text" class="wp-name" placeholder="${ordinal(waypointCount - 1)} Waypoint" />
       <label>Question:</label>
@@ -546,9 +578,11 @@
       <button class="btn-save-pin" onclick="savePin(${waypointCount})">Save</button>
       <button class="btn-delete" onclick="deletePin(${waypointCount})">Delete</button>
     `;
+
     document.getElementById('locationButtons').before(box);
     currentEditIndex = waypointCount;
     isSaved = false;
+    updateTitles();
   }
 
   function addLastLocation() {
@@ -556,14 +590,17 @@
       alert('Please save the current waypoint before adding a new one.');
       return; 
     }
-    if (waypointCount >= 5) { 
-      alert('Maximum 5 waypoints allowed in total!'); 
+
+    if (waypointCount >= 6) { 
+      alert('Maximum 6 waypoints allowed in total!'); 
       return; 
     }
+
     if (document.querySelector('.waypoint-box[data-last="true"]:not([data-index="1"])')) {
       alert('Cannot add a new waypoint after the last waypoint!');
       return;
     }
+
     lastPointCount++;
     waypointCount++;
   
@@ -572,7 +609,7 @@
     box.dataset.index = waypointCount;
     box.dataset.last = 'true';
     box.innerHTML = `
-      <h3>Last Waypoint</h3>
+      <h3 class="wp-title"></h3>
       <label>Waypoint Name:</label>
       <input type="text" class="wp-name" placeholder="Last Waypoint" />
       <label>Question:</label>
@@ -595,17 +632,19 @@
         Delete
       </button>
     `;
+
     document.getElementById('locationButtons').before(box);
     currentEditIndex = waypointCount;
     isSaved = false;
+    updateTitles();
   }
-
+{% comment %} 
   function toggleGamePanel() {
     var p = document.getElementById('gameInfoPanel');
     var a = document.getElementById('arrow');
     p.classList.toggle('collapsed');
     a.innerHTML = p.classList.contains('collapsed') ? '▶' : '◀';
-  }
+  } {% endcomment %}
 
   function searchLocation() {
     var q = document.getElementById('searchInput').value;
@@ -631,6 +670,7 @@
       var a = (box.querySelector('.wp-answer')||{}).value || '';
       var d = (box.querySelector('.difficulty-slider')||{}).value || 0;
       var c = markers[i] && markers[i].coords;
+
       if (!c) return;
       out.push({
         id: id,
@@ -644,6 +684,7 @@
         is_last: box.dataset.last === 'true'
       });
     });
+
     document.getElementById('waypointsData').value = JSON.stringify(out);
     document.getElementById('gameInfoForm').submit();
   });
