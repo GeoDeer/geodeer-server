@@ -34,14 +34,7 @@ class WaypointSerializer(serializers.ModelSerializer):
 class UserLocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserLocation
-        fields = [
-            'id', 'user', 'game',
-            'lat', 'lon', 'location_geom',
-            'time_stamp', 'time_diff', 'distance', 'speed',
-        ]
-        read_only_fields = [
-            'time_stamp', 'time_diff', 'distance', 'speed',
-        ]
+        fields = '__all__'
 
 # class UserDistanceSerializer(serializers.ModelSerializer):
 #     class Meta:
