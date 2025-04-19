@@ -10,7 +10,7 @@
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      font-family: "Times New Roman", Times, serif;
+      font-family: "Poppins", sans-serif;
     }
 
     /* Color Variables */
@@ -126,11 +126,13 @@
       margin-right: 10px;
       margin-bottom: 10px;
       transition: opacity 0.3s;
+      text-decoration: none;
     }
 
     button:hover,
     .btn:hover {
       opacity: 0.8;
+      text-decoration: none;
     }
 
     /* Games Table */
@@ -161,13 +163,18 @@
 </head>
 <body>
   <!-- Header -->
-  <header id="header">
+  {% comment %} <header id="header">
     <h1>GeoDeer | Treasure Hunt Game</h1>
     <div class="header-right">
       <a href="#">Profile</a>
       <a href="#">Logout</a>
     </div>
-  </header>
+  </header> {% endcomment %}
+
+  <div id="header">
+    <div>GeoDeer</div>
+    <div>A Map-Based Treasure Hunt Game</div>
+  </div>
 
   <!-- Main Content -->
   <main id="main-content">
@@ -194,15 +201,17 @@
 <section id="right-panel">
   <h2>My Games</h2>
   <p>Your previously created games are listed here.</p>
-  <div style="margin-bottom: 10px;">
-    <button>Create Game</button>
-  </div>
+  <form method="post" style="margin-bottom: 10px;">
+    {% csrf_token %}
+    <button type="submit">Create Game</button>
+  </form>
   <table>
     <thead>
       <tr>
         <th>Game Name</th>
-        <th>Game ID (for mobile players)</th>
+        <th>Invite ID</th>
         <th>Date</th>
+        <th>Time</th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -210,21 +219,30 @@
       {% for game in games %}
       <tr>
         <td>{{ game.game_name }}</td>
-        <!-- Örnek olarak mobile oyuncular için invite_id kullanılıyor -->
         <td>{{ game.invite_id }}</td>
-        <!-- Tarih bilgisini d/m/Y formatında gösteriyoruz -->
         <td>{{ game.start_date_time|date:"d/m/Y" }}</td>
+        <td>{{ game.start_date_time|date:"H:i" }}</td>
         <td>
-          <button>Start Game</button>
-          <button>Watch Game</button>
-          <button>Results</button>
-          <button>Manage</button>
-          <button>Delete</button>
+          <a href="{% url 'monitor' creator_id=creator_id pk=game.game_id %}"
+             class="btn">Monitor</a>
+          <a href="{% url 'results' game_id=game.game_id %}"
+             class="btn">Results</a>
+          <a href="{% url 'create_manage' creator_id=creator_id game_id=game.game_id %}"
+             class="btn">Manage</a>
+          <form method="post" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit"
+                    name="delete_game"
+                    value="{{ game.game_id }}"
+                    class="btn">
+              Delete
+            </button>
+          </form>
         </td>
       </tr>
       {% empty %}
       <tr>
-        <td colspan="4">No games found.</td>
+        <td colspan="5">No games found or loading.</td>
       </tr>
       {% endfor %}
     </tbody>
