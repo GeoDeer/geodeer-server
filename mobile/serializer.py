@@ -37,10 +37,10 @@ class UserLocationSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'user', 'game',
             'lat', 'lon', 'location_geom',
-            'time', 'time_diff', 'distance', 'speed',
+            'time_stamp', 'time_diff', 'distance', 'speed',
         ]
         read_only_fields = [
-            'time', 'time_diff', 'distance', 'speed',
+            'time_stamp', 'time_diff', 'distance', 'speed',
         ]
 
 # class UserDistanceSerializer(serializers.ModelSerializer):
