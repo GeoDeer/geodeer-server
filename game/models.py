@@ -100,7 +100,7 @@ class UserLocation(models.Model):
             previous = (
                 UserLocation.objects
                 .filter(user=self.user, game=self.game)
-                .order_by('-time')
+                .order_by('-time_stamp')
                 .first()
             )
             if previous:
