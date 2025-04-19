@@ -86,7 +86,7 @@ class UserLocation(models.Model):
     lat = models.FloatField()
     lon = models.FloatField()
     location_geom = models.PointField(blank=True, null=True)
-    time = models.DateTimeField(default=timezone.now)
+    time_stamp = models.DateTimeField(default=timezone.now)
     time_diff = models.FloatField(blank=True, null=True)
     distance = models.FloatField(blank=True, null=True)
     speed = models.FloatField(blank=True, null=True)
@@ -104,7 +104,7 @@ class UserLocation(models.Model):
                 .first()
             )
             if previous:
-                delta = self.time - previous.time
+                delta = self.time_stamp - previous.time_stamp
                 self.time_diff = delta.total_seconds() / 3600.0
                 
                 prev_geom = previous.location_geom.clone()
