@@ -387,7 +387,8 @@
   
       if (idx === 1) {
         title.textContent = 'Start Location';
-      } else {
+      } 
+      else {
         title.textContent = ordinal(idx - 1) + ' Waypoint';
       }
     });
@@ -506,7 +507,7 @@
     //    lastPointCount = Math.max(0, lastPointCount - 1);
    // } 
 
-    waypointCount = Math.max(1, waypointCount - 1);
+    waypointCount = Math.max(0, waypointCount - 1);
 
     if (markers[i]) {
       map.removeLayer(markers[i]);
@@ -515,6 +516,10 @@
   
     const box = document.querySelector(`[data-index="${i}"]`);
     if (box) box.remove();
+
+    document.querySelectorAll('.waypoint-box').forEach((box, newIndex) => {
+      box.dataset.index = newIndex + 1;
+    });
 
     updateTitles();
   }
