@@ -95,7 +95,6 @@
       margin-right: 5px;
       margin-top: 5px;
     }
-  
     .btn-delete {
       background-color: var(--vibrant-orange);
       color: var(--white);
@@ -210,22 +209,6 @@
       font-size: 0.9rem;
       margin-bottom: 8px;
     }
-    {% comment %} .save-game-btn {
-      background-color: var(--vibrant-orange);
-      color: var(--white);
-      border: none;
-      padding: 8px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      margin-top: 10px;
-      display: block;
-      width: 100%;
-      text-align: center;
-    }
-    .save-game-btn:hover {
-      opacity: 0.9;
-    } {% endcomment %}
     .search-bar {
       position: absolute;
       top: 70px;
@@ -253,7 +236,114 @@
       cursor: pointer;
       font-size: 0.9rem;
     }
-  </style>
+
+    /* === RESPONSIVE === */
+    @media (max-width: 768px) {
+      #main {
+        flex-direction: column;
+      }
+
+      #sidebar {
+        width: 100%;
+        padding: 10px;
+        border-right: none;
+        border-bottom: 2px solid #ccc;
+        max-height: none;
+      }
+
+      .waypoint-box {
+        width: 100%;
+      }
+
+      #map {
+        width: 100%;
+        min-height: 300px;
+      }
+
+      .game-info-panel {
+        position: relative;
+        width: 100%;
+        bottom: 0;
+        right: 0;
+        border-radius: 0;
+        box-shadow: none;
+        margin-top: 15px;
+      }
+
+      .toggle-handle {
+        display: none;
+      }
+
+      #footer {
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .search-bar {
+        top: auto;
+        bottom: 10px;
+        right: 10px;
+        width: calc(100% - 20px);
+      }
+
+      .search-bar input[type="text"] {
+        width: 100%;
+      }
+
+      .search-bar button {
+        width: 100%;
+        margin-top: 5px;
+      }
+    }
+    @media screen and (orientation: landscape) and (max-height: 500px) {
+    .search-bar,
+    #gameInfoPanel {
+      transform: scale(0.7);
+      transform-origin: top right;
+    }
+
+    .search-bar {
+      top: 40px;
+      padding: 2px;
+      width: 160px;
+      gap: 5px;
+    }
+
+    .search-bar input[type="text"] {
+      padding: 2px;
+      font-size: 0.8rem;
+    }
+
+    .search-bar button {
+      padding: 6px 10px;
+      font-size: 0.8rem;
+    }
+
+    #gameInfoPanel {
+      top: 100px;
+      bottom: auto;
+      right: 10px;
+      width: 160px;
+      bottom: auto;
+    }
+
+    #gameInfoPanel h2 {
+      font-size: 1rem;
+      padding: 3px;
+      text-align: center;
+      
+    }
+
+    #gameInfoPanel label,
+    #gameInfoPanel input {
+      font-size: 0.8rem;
+      padding: 4px;
+      
+    }
+  }
+
+
+</style>
 </head>
 <body>
   <div id="header">
@@ -693,6 +783,9 @@
     document.getElementById('waypointsData').value = JSON.stringify(out);
     document.getElementById('gameInfoForm').submit();
   });
+
+
+
 </script>
 </body>
 </body>
