@@ -203,92 +203,85 @@ def monitor(request, pk, creator_id):
         score.is_disqualified = True
         score.save()
         return JsonResponse({"status": "success"})
-
+    
     user_scores = UserScore.objects.filter(game=game).select_related('user')
     players = []
-    
     for score in user_scores:
-        uid = score.user.user_id
-        user_locs = list(UserLocation.objects.filter(game=game, user=score.user).order_by('-pk')[:10])
-        user_locs.reverse()  
+        user_locs = list(
+            UserLocation.objects
+                .filter(game=game, user=score.user)
+                .order_by('-pk')[:100]
+        )
+        user_locs.reverse()
         latest = user_locs[-1] if user_locs else None
-        path = [{'lat': loc.lat, 'lon': loc.lon} for loc in user_locs]  
-        player = {
-            'id': uid,
+
+        path = [{'lat': loc.lat, 'lon': loc.lon} for loc in user_locs]
+
+        players.append({
+            'id': score.user.user_id,
             'name': score.user.username,
             'score': score.total_score,
             'lat': latest.lat if latest else None,
-            'lon': latest.lon if latest else None,  
+            'lon': latest.lon if latest else None,
             'path': path,
-            'disqualified': score.is_disqualified
-        }
-        players.append(player)
+            'disqualified': score.is_disqualified,
+            'speed': latest.speed if latest and latest.speed is not None else 0, 
+        })
 
     sorted_players = sorted(players, key=lambda p: p['id'])
     available_colors = ['cyan', 'red', 'purple', 'yellow']
-    
     for i, player in enumerate(sorted_players):
         player['icon'] = available_colors[i % len(available_colors)]
 
     waypoints_qs = game.waypoints.all().order_by('waypoint_id')
     waypoints = []
-    
-    for index, wp in enumerate(waypoints_qs):
-        if index == 0:
+    for idx, wp in enumerate(waypoints_qs):
+        if idx == 0:
             label = "Start Location"
             marker_color = "#296B45"
-        elif index == len(waypoints_qs) - 1:
-            label = f"{ordinal(index)} Waypoint"
+        elif idx == len(waypoints_qs) - 1:
+            label = f"{ordinal(idx)} Waypoint"
             marker_color = "#A52A2A"
         else:
-            label = f"{ordinal(index)} Waypoint"
+            label = f"{ordinal(idx)} Waypoint"
             marker_color = "#B3D8E7"
-        
         waypoints.append({
             'id': wp.waypoint_id,
             'name': wp.waypoint_name,
             'lat': wp.lat,
-            'lon': wp.lon, 
+            'lon': wp.lon,
             'label': label,
             'marker_color': marker_color,
         })
 
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        return JsonResponse({'players': sorted_players, 'waypoints': waypoints})
-    
+        return JsonResponse({
+            'players': sorted_players,
+            'waypoints': waypoints
+        })
+
     return render(request, 'game/monitor.html', {
         'players': sorted_players,
         'game': game,
         'waypoints': waypoints
     })
-
-def results(request, game_id):
-    game = get_object_or_404(Game, pk=game_id)
+def results(request, game_id, creator_id):
+    game = get_object_or_404(Game, pk=game_id, game_creator_id=creator_id)
     user_scores = UserScore.objects.filter(game=game).select_related('user')
     players = []
     
     for score in user_scores:
         uid = score.user.user_id
-        user_locs = list(UserLocation.objects.filter(game=game, user=score.user).order_by('-pk')[:10])
-        user_locs.reverse()  
-        latest = user_locs[-1] if user_locs else None
-        path = [{'lat': loc.lat, 'lon': loc.lon} for loc in user_locs]  
+    
         player = {
             'id': uid,
             'name': score.user.username,
             'score': score.total_score,
-            'lat': latest.lat if latest else None,
-            'lon': latest.lon if latest else None,  
-            'path': path,
             'disqualified': score.is_disqualified
         }
         players.append(player)
 
-    sorted_players = sorted(players, key=lambda p: p['id'])
-    available_colors = ['cyan', 'red', 'purple', 'yellow']
-    
-    for i, player in enumerate(sorted_players):
-        player['icon'] = available_colors[i % len(available_colors)]
+    sorted_players = sorted(players, key=lambda p: p['score'], reverse=True)
 
     return render(request, 'game/results.html', {
         'players': sorted_players,

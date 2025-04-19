@@ -365,40 +365,56 @@
         });
     });
 
-    // ECharts Hız Grafiği
     const chart = echarts.init(document.getElementById('speed-chart'));
 
-    // Örnek dummy veriler (şu an için sadece grafik görünmesi için)
-    const dummyPlayerNames = ['Ayşe', 'Burak', 'Cem', 'Deniz'];
-    const dummyPlayerSpeeds = [3.2, 5.1, 2.9, 4.4];
-
     function updateSpeedChart() {
-      const option = {
-        title: { text: 'Current Player Speeds (m/s)', left: 'center' },
-        tooltip: { trigger: 'item' },
-        xAxis: {
-          type: 'category',
-          data: dummyPlayerNames
-        },
-        yAxis: {
-          type: 'value',
-          min: 0,
-          max: 10,
-          name: 'Speed (m/s)'
-        },
-        series: [{
-          name: 'Speed',
-          type: 'bar',
-          data: dummyPlayerSpeeds,
-          itemStyle: {
-            color: '#4CAF50'
+      fetch(window.location.href, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+      .then(response => response.json())
+      .then(data => {
+        const names = [];
+        const seriesData = [];
+
+        data.players.forEach(player => {
+          if (!player.disqualified) {
+            names.push(player.name);
+            seriesData.push({
+              value: player.speed || 0,
+              itemStyle: { color: player.icon }
+            });
           }
-        }]
-      };
-      chart.setOption(option);
+        });
+
+        const option = {
+          title: {
+            text: 'Current Player Speeds (km/h)',
+            left: 'center'
+          },
+          tooltip: { trigger: 'item' },
+          xAxis: {
+            type: 'category',
+            data: names
+          },
+          yAxis: {
+            type: 'value',
+            min: 0,
+            name: 'Speed (km/h)'
+          },
+          series: [{
+            name: 'Speed',
+            type: 'bar',
+            data: seriesData
+          }]
+        };
+
+        chart.setOption(option);
+      })
+      .catch(err => console.error('Speed chart update error:', err));
     }
 
     updateSpeedChart();
+    setInterval(updateSpeedChart, 3000);
   </script>
 </body>
 </html>
