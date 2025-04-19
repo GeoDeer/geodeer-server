@@ -266,8 +266,7 @@
       {% for wp in game.waypoints.all %}
       <div class="waypoint-box"
            data-index="{{ forloop.counter }}"
-           data-id="{{ wp.waypoint_id }}"
-           data-last="{{ wp.is_last|yesno:'true,false' }}">
+           data-id="{{ wp.waypoint_id }}"> 
         <h3 class="wp-title"></h3>
         <label>Waypoint Name:</label>
         <input type="text" class="wp-name" value="{{ wp.waypoint_name }}" disabled />
@@ -309,7 +308,7 @@
 
       <div id="locationButtons" style="display:flex;gap:10px;margin-top:10px;">
         <button id="addWaypointBtn" class="save-locations-btn" onclick="addNewWaypoint()">Add New Waypoint</button>
-        <button id="addLastLocationBtn" class="save-locations-btn" onclick="addLastLocation()">Add Last Waypoint</button>
+        {% comment %} <button id="addLastLocationBtn" class="save-locations-btn" onclick="addLastLocation()">Add Last Waypoint</button> {% endcomment %}
       </div>
     </div>
     <div id="map">
@@ -362,7 +361,7 @@
 
   let waypointCount = {{ waypoint_count }} > 0 ? {{ waypoint_count }} : 1;
   let hasInitialLast = {{ last_point_count }} > 0;
-  let lastPointCount = {{ last_point_count }};
+  {% comment %} let lastPointCount = {{ last_point_count }}; {% endcomment %}
 
   function ordinal(n) {
     let s;
@@ -382,14 +381,12 @@
   function updateTitles() {
     document.querySelectorAll('.waypoint-box').forEach(box => {
       const idx = Number(box.dataset.index);
-      const isLast = box.dataset.last === 'true';
+      //const isLast = box.dataset.last === 'true';
       const title = box.querySelector('.wp-title');
       if (!title) return;
   
       if (idx === 1) {
         title.textContent = 'Start Location';
-      } else if (isLast) {
-        title.textContent = 'Last Waypoint';
       } else {
         title.textContent = ordinal(idx - 1) + ' Waypoint';
       }
@@ -466,7 +463,7 @@
     alert('Waypoint saved successfully.');
     
     document.getElementById('addWaypointBtn').style.display = 'inline-block';
-    document.getElementById('addLastLocationBtn').style.display = 'inline-block';
+    // document.getElementById('addLastLocationBtn').style.display = 'inline-block';
   
     isSaved = true;
     isEditable = false;
@@ -496,18 +493,18 @@
 
   function deletePin(i) {
     if (!isSaved) {
-      alert('Please save the current waypoint before deleting another one.');
+      alert('Please save the current waypoint before delete.');
       return;
     }
-    
+
     currentEditIndex = null;
     isEditable = false;
     isSaved = true;
   
-    const box = document.querySelector(`[data-index="${i}"]`);
-    if (box && box.dataset.last === 'true') {
-      lastPointCount = Math.max(0, lastPointCount - 1);
-    }
+    // const box = document.querySelector(`[data-index="${i}"]`);
+    // if (box && box.dataset.last === 'true') {
+    //    lastPointCount = Math.max(0, lastPointCount - 1);
+   // } 
 
     waypointCount = Math.max(1, waypointCount - 1);
 
@@ -516,9 +513,12 @@
       delete markers[i];
     }
   
+    const box = document.querySelector(`[data-index="${i}"]`);
     if (box) box.remove();
+
+    updateTitles();
   }
-  
+
   map.on('dblclick', function (e) {
     if (currentEditIndex === null) {
       alert('Press the Edit button to modify this waypoint.');
@@ -544,12 +544,12 @@
       alert('Please save the current waypoint before adding a new one.');
       return;
     }
-
+/*
     if (lastPointCount >= 1) {
-      alert('You can add a waypoint after the last waypoint!');
+      alert('You cannot add a waypoint after the last waypoint!');
       return;
     }
-
+*/
     if (waypointCount > 5) {
       alert('Maximum 6 waypoints (including Start Point and Last Waypoint)!');
       return;
@@ -585,7 +585,7 @@
     updateTitles();
   }
 
-  function addLastLocation() {
+  {% comment %} function addLastLocation() {
     if (!isSaved) { 
       alert('Please save the current waypoint before adding a new one.');
       return; 
@@ -637,7 +637,7 @@
     currentEditIndex = waypointCount;
     isSaved = false;
     updateTitles();
-  }
+  } {% endcomment %}
 {% comment %} 
   function toggleGamePanel() {
     var p = document.getElementById('gameInfoPanel');

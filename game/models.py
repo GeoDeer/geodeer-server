@@ -62,7 +62,6 @@ class Waypoint(models.Model):
 
     def create_buffer(self, buffer_distance=5):
         geom = self.waypoint_geom
-
         if geom.srid is None:
             raise ValueError("SRID not defined.")
 
@@ -71,14 +70,27 @@ class Waypoint(models.Model):
 
         buff = geom_proj.buffer(buffer_distance, quadsegs=8)
         buff.transform(4326)
-
         return buff
 
     def save(self, *args, **kwargs):
         if not self.waypoint_geom:
             self.waypoint_geom = GEOSGeometry(f'POINT({self.lon} {self.lat})', srid=4326)
         self.waypoint_buffer = self.create_buffer(buffer_distance=5)
+
         super().save(*args, **kwargs)
+
+        self.update_is_last_flag()
+
+    def update_is_last_flag(self):
+        waypoints = Waypoint.objects.filter(game=self.game)
+
+        last_waypoint = waypoints.order_by('-waypoint_id').first()
+
+        for wp in waypoints:
+            wp_is_last = (wp.pk == last_waypoint.pk)
+            if wp.is_last != wp_is_last:
+                wp.is_last = wp_is_last
+                super(Waypoint, wp).save(update_fields=['is_last'])
     
 class UserLocation(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='locations')
