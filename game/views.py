@@ -11,54 +11,54 @@ from .models import Game, UserScore, UserLocation, Waypoint, User
 import datetime
 import json
 
-def auth(request):
-    return render(request, 'game/auth.html')
+# def auth(request):
+#     return render(request, 'game/auth.html')
 
-def login_view(request):
-    if request.method == "POST":
-        username = request.POST.get("username")
-        password = request.POST.get("password")
+# def login_view(request):
+#     if request.method == "POST":
+#         username = request.POST.get("username")
+#         password = request.POST.get("password")
 
-        try:
-            user = User.objects.get(username=username)
-            if check_password(password, user.password):
-                login(request, user) 
-                return redirect("index")
-            else:
-                messages.error(request, "Incorrect username or password.")
-                return redirect("auth_page")
-        except User.DoesNotExist:
-            messages.error(request, "Incorrect username or password.")
-            return redirect("auth_page")
+#         try:
+#             user = User.objects.get(username=username)
+#             if check_password(password, user.password):
+#                 login(request, user) 
+#                 return redirect("index")
+#             else:
+#                 messages.error(request, "Incorrect username or password.")
+#                 return redirect("auth_page")
+#         except User.DoesNotExist:
+#             messages.error(request, "Incorrect username or password.")
+#             return redirect("auth_page")
 
-    return redirect("auth_page")
+#     return redirect("auth_page")
 
-def register_view(request):
-    if request.method == "POST":
-        username = request.POST.get("username")
-        email = request.POST.get("email")
-        password1 = request.POST.get("password1")
-        password2 = request.POST.get("password2")
+# def register_view(request):
+#     if request.method == "POST":
+#         username = request.POST.get("username")
+#         email = request.POST.get("email")
+#         password1 = request.POST.get("password1")
+#         password2 = request.POST.get("password2")
 
-        if password1 != password2:
-            messages.error(request, "Passwords do not match.")
-            return redirect("auth_page")
+#         if password1 != password2:
+#             messages.error(request, "Passwords do not match.")
+#             return redirect("auth_page")
 
-        if User.objects.filter(username=username).exists():
-            messages.error(request, "Username already exists.")
-            return redirect("auth_page")
+#         if User.objects.filter(username=username).exists():
+#             messages.error(request, "Username already exists.")
+#             return redirect("auth_page")
 
-        if User.objects.filter(email=email).exists():
-            messages.error(request, "E-mail already exists.")
-            return redirect("auth_page")
+#         if User.objects.filter(email=email).exists():
+#             messages.error(request, "E-mail already exists.")
+#             return redirect("auth_page")
 
-        hashed_password = make_password(password1)
-        user = User(username=username, email=email, password=hashed_password)
-        user.save()
-        messages.success(request, "Registration successful! You can now log in.")
-        return redirect("auth_page")
+#         hashed_password = make_password(password1)
+#         user = User(username=username, email=email, password=hashed_password)
+#         user.save()
+#         messages.success(request, "Registration successful! You can now log in.")
+#         return redirect("auth_page")
 
-    return redirect("auth_page")
+#     return redirect("auth_page")
 
 def main_menu(request, creator_id):
     if request.method == 'POST':
@@ -196,6 +196,10 @@ def ordinal(n):
 def monitor(request, pk, creator_id):
     game = get_object_or_404(Game, pk=pk, game_creator_id=creator_id)
 
+    now = timezone.now()
+    remaining_td = game.start_date_time - now
+    remaining_seconds = max(int(remaining_td.total_seconds()), 0)
+    
     if request.method == "POST" and request.headers.get('x-requested-with') == 'XMLHttpRequest':
         player_id = request.POST.get('player_id')
         user = get_object_or_404(User, user_id=player_id)
@@ -257,13 +261,18 @@ def monitor(request, pk, creator_id):
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         return JsonResponse({
             'players': sorted_players,
-            'waypoints': waypoints
+            'waypoints': waypoints,
+            'remaining_seconds': remaining_seconds,
         })
 
     return render(request, 'game/monitor.html', {
         'players': sorted_players,
         'game': game,
-        'waypoints': waypoints
+        'creator_id': creator_id,
+        'waypoints': waypoints,
+        'now': now,
+        'remaining_td': remaining_td,
+        'remaining_seconds': remaining_seconds,
     })
     
 def results(request, game_id, creator_id):
