@@ -1,6 +1,6 @@
 from django.contrib.auth.hashers import make_password
 from rest_framework import serializers
-from game.models import User, Game, Waypoint, UserLocation, UserScore
+from game.models import User, Game, Waypoint, UserLocation, UserScore, Question
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -51,4 +51,9 @@ class UserLocationSerializer(serializers.ModelSerializer):
 class UserScoreSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserScore
+        fields = '__all__'
+
+class QuestionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Question
         fields = '__all__'
