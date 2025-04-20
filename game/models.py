@@ -78,8 +78,9 @@ class Waypoint(models.Model):
         self.waypoint_buffer = self.create_buffer(buffer_distance=5)
 
         super().save(*args, **kwargs)
-
+       
         self.update_is_last_flag()
+        self.create_question()
 
     def update_is_last_flag(self):
         waypoints = Waypoint.objects.filter(game=self.game)
@@ -91,6 +92,17 @@ class Waypoint(models.Model):
             if wp.is_last != wp_is_last:
                 wp.is_last = wp_is_last
                 super(Waypoint, wp).save(update_fields=['is_last'])
+
+    def create_question(self):
+        if not Question.objects.filter(waypoint=self).exists():  
+            Question.objects.create(
+                game=self.game,
+                user=self.game.game_creator,  
+                waypoint=self,
+                ques_dif_level=self.ques_dif_level,  
+                answer_time=0, 
+                is_correct=False  
+            )
     
 class UserLocation(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='locations')
@@ -158,3 +170,25 @@ class UserScore(models.Model):
 
     def __str__(self):
         return self.user
+
+class Question(models.Model):
+    game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='questions')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='questions')
+    waypoint = models.ForeignKey(Waypoint, on_delete=models.CASCADE, related_name='questions')
+    ques_dif_level = models.FloatField() 
+    answer_time = models.FloatField(default=0)
+    is_correct = models.BooleanField(default=False)
+
+    def save(self, *args, **kwargs):
+        if not self.ques_dif_level and self.waypoint:
+            self.ques_dif_level = self.waypoint.ques_dif_level 
+
+        if not self.game:
+            self.game = self.waypoint.game  
+        if not self.user:
+            self.user = self.waypoint.game.game_creator 
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Question for {self.user.username} at {self.waypoint.waypoint_name}"
