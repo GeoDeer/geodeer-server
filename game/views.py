@@ -265,25 +265,53 @@ def monitor(request, pk, creator_id):
         'game': game,
         'waypoints': waypoints
     })
+    
 def results(request, game_id, creator_id):
     game = get_object_or_404(Game, pk=game_id, game_creator_id=creator_id)
     user_scores = UserScore.objects.filter(game=game).select_related('user')
-    players = []
-    
-    for score in user_scores:
-        uid = score.user.user_id
-    
-        player = {
-            'id': uid,
-            'name': score.user.username,
-            'score': score.total_score,
-            'disqualified': score.is_disqualified
-        }
-        players.append(player)
+
+    players = [{
+        'id': score.user.user_id,
+        'name': score.user.username,
+        'score': score.total_score,
+        'disqualified': score.is_disqualified
+    } for score in user_scores]
 
     sorted_players = sorted(players, key=lambda p: p['score'], reverse=True)
 
+    available_colors = ['cyan', 'red', 'purple', 'yellow']
+    for i, p in enumerate(sorted_players):
+        p['icon'] = available_colors[i % len(available_colors)]
+
+    all_times = UserLocation.objects.filter(game=game) \
+                    .order_by('time_stamp') \
+                    .values_list('time_stamp', flat=True)
+    speed_data = {'labels': [], 'players': []}
+    if all_times:
+        first_time = all_times[0]
+        last_time  = all_times.reverse()[0]
+        speed_data['labels'] = [
+            first_time.strftime('%H:%M'),
+            last_time.strftime('%H:%M'),
+        ]
+
+    for p in sorted_players:
+        locs = UserLocation.objects.filter(game=game, user__user_id=p['id']) \
+                                   .order_by('time_stamp')
+        if locs:
+            speeds = [locs.first().speed or 0, locs.last().speed or 0]
+        else:
+            speeds = [0, 0]
+            
+        speed_data['players'].append({
+            'name':   p['name'],
+            'speeds': speeds,
+            'icon':   p['icon']
+        })
     return render(request, 'game/results.html', {
-        'players': sorted_players,
-        'game': game
+        'players':    sorted_players,
+        'game':       game,
+        'date':       game.start_date_time.strftime('%Y-%m-%d %H:%M'),
+        'winner':     sorted_players[0] if sorted_players else None,
+        'speed_data': json.dumps(speed_data),
     })
