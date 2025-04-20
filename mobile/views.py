@@ -226,7 +226,6 @@ def get_question(request):
     serializer = QuestionSerializer(questions, many=True) 
     return Response(serializer.data)
 
-# POST (Yeni Question oluştur)
 @api_view(['POST'])
 def create_question(request):
     serializer = QuestionSerializer(data=request.data)  

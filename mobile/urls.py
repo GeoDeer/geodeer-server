@@ -25,4 +25,8 @@ urlpatterns = [
     path('userscores/', views.get_user_score, name='get_user_score'),
     path('userscores/create/', views.create_user_score, name='create_user_score'),
     path('userscores/<int:pk>/', views.user_score_detail, name='user_score_detail'),
+    
+    path('questions/', views.get_question, name='get_question'),
+    path('questions/create/', views.create_question, name='create_question'),
+    path('questions/<int:pk>/', views.question_detail, name='question_detail'),
 ]
