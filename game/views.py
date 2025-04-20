@@ -82,7 +82,7 @@ def main_menu(request, creator_id):
     games = Game.objects.filter(game_creator_id=creator_id).order_by('-start_date_time')
     return render(request, 'game/main_menu.html', {
         'games': games,
-        'creator_id': creator_id
+        'creator_id': creator_id, 
     })
 
 def create_manage(request, creator_id, game_id):

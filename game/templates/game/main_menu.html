@@ -225,7 +225,7 @@
         <td>
           <a href="{% url 'monitor' creator_id=creator_id pk=game.game_id %}"
              class="btn">Monitor</a>
-          <a href="{% url 'results' game_id=game.game_id %}"
+             <a href="{% url 'results' creator_id=creator_id game_id=game.game_id %}"
              class="btn">Results</a>
           <a href="{% url 'create_manage' creator_id=creator_id game_id=game.game_id %}"
              class="btn">Manage</a>
