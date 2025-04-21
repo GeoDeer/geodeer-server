@@ -235,24 +235,23 @@ def create_question(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)  
 
 @api_view(['GET', 'PUT', 'DELETE'])
-def question_detail(request, pk):
+def question_detail(request, waypoint_id):
     try:
-        question = Question.objects.get(pk=pk)  
+        question = Question.objects.get(waypoint_id=waypoint_id)
     except Question.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)  
+        return Response(status=status.HTTP_404_NOT_FOUND)
 
     if request.method == 'GET':
-        serializer = QuestionSerializer(question)  
+        serializer = QuestionSerializer(question)
         return Response(serializer.data)
 
     elif request.method == 'PUT':
-        serializer = QuestionSerializer(question, data=request.data) 
-        if serializer.is_valid(): 
-            serializer.save()  
-            return Response(serializer.data) 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)  
+        serializer = QuestionSerializer(question, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     elif request.method == 'DELETE':
-        question.delete() 
-        return Response(status=status.HTTP_204_NO_CONTENT)  
-    
+        question.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

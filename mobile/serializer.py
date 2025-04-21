@@ -56,4 +56,10 @@ class UserScoreSerializer(serializers.ModelSerializer):
 class QuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Question
-        fields = '__all__'
+        fields = ['answer_time', 'is_correct']  
+        extra_kwargs = {
+            'ques_dif_level': {'required': False},
+            'game': {'required': False},
+            'user': {'required': False},
+            'waypoint': {'required': False},
+        }
