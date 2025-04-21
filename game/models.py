@@ -147,7 +147,7 @@ class UserLocation(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.user.username} @ {self.time.isoformat()}"
+        return f"Location for {self.user.username} at {self.time_stamp}"
 
 
 # class UserDistance(models.Model):
@@ -169,7 +169,7 @@ class UserScore(models.Model):
     is_disqualified = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.user
+        return f"Score for {self.user.username} in {self.game.game_name}" 
 
 class Question(models.Model):
     game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='questions')
