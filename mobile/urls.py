@@ -28,5 +28,5 @@ urlpatterns = [
     
     path('questions/', views.get_question, name='get_question'),
     path('questions/create/', views.create_question, name='create_question'),
-    path('questions/<int:pk>/', views.question_detail, name='question_detail'),
+    path('questions/<int:waypoint_id>/', views.question_detail, name='question_detail'),
 ]
