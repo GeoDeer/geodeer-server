@@ -87,7 +87,8 @@ def main_menu(request, creator_id):
 
 def create_manage(request, creator_id, game_id):
     game = Game.objects.filter(game_id=game_id, game_creator_id=creator_id).first()
-
+    waypoints = game.waypoints.all().order_by('waypoint_id')
+    
     if request.method == 'POST':
         game_name = request.POST.get('game_name', '').strip()
         start_date_str = request.POST.get('start_date', '').strip()
@@ -139,10 +140,7 @@ def create_manage(request, creator_id, game_id):
 
         deleted_ids = json.loads(request.POST.get('deleted_ids', '[]'))
         if deleted_ids:
-            Waypoint.objects.filter(
-                game=game,
-                waypoint_id__in=deleted_ids
-            ).delete()
+            Waypoint.objects.filter(game=game, waypoint_id__in=deleted_ids).delete()
 
         kept_ids = set()
         for wp in wps:
@@ -181,6 +179,7 @@ def create_manage(request, creator_id, game_id):
         'creator_id': creator_id,
         'game_id': game_id,
         'game': game,
+        'waypoints': waypoints,
         'waypoint_count': game.waypoints.count(),
         'last_point_count':game.waypoints.filter(is_last=True).count(),
     }
