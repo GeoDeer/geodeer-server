@@ -226,22 +226,29 @@
     <!-- Game Info Panel -->
     <div class="game-info">
       <table>
-        <tr>
-          <th>Player</th>
-          <th>Score</th>
-          <th>Actions</th>
-        </tr>
-        {% for player in players %}
-        <tr {% if player.disqualified %} style="text-decoration: line-through;" {% endif %}>
-          <td>{{ player.name }}</td>
-          <td>{{ player.score }}</td>
-          <td>
-            <button class="disqualify" data-player-id="{{ player.id }}" {% if player.disqualified %} disabled {% endif %}>
+        <thead>
+          <tr>
+            <th>Player</th>
+            <th>Score</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="players-body">
+          {% for player in players %}
+          <tr {% if player.disqualified %} style="text-decoration: line-through;" {% endif %}>
+            <td>{{ player.name }}</td>
+            <td id="score-{{ player.id }}">{{ player.score }}</td>
+            <td>
+              <button
+              class="disqualify"
+              data-player-id="{{ player.id }}"
+              {% if player.disqualified %} disabled {% endif %}
+            >
               Disqualify
             </button>
-          </td>
-        </tr>
-        {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
       </table>
     </div>
 
@@ -332,37 +339,54 @@
       fetch(window.location.href, {
         headers: { 'X-Requested-With': 'XMLHttpRequest' }
       })
-      .then(response => response.json())
+      .then(r => r.json())
       .then(data => {
-        data.players.forEach(function(player) {
-          if (player.disqualified) {
-            if (markers[player.id]) {
-              map.removeLayer(markers[player.id]);
-              delete markers[player.id];
+        data.players.forEach(p => {
+          if (p.disqualified) {
+            if (markers[p.id]) {
+              map.removeLayer(markers[p.id]);
+              delete markers[p.id];
             }
-            if (polylines[player.id]) {
-              map.removeLayer(polylines[player.id]);
-              delete polylines[player.id];
+            if (polylines[p.id]) {
+              map.removeLayer(polylines[p.id]);
+              delete polylines[p.id];
             }
+            return;
+          }
+    
+          const latlng = [p.lat, p.lon];
+  
+          if (!markers[p.id]) {
+            markers[p.id] = L.marker(latlng, {
+              icon: getIcon(p.icon)
+            })
+            .addTo(map)
+            .bindTooltip(p.name, {
+              permanent: true,
+              direction: 'top',
+              offset: [0, -50]
+            });
           } else {
-            if (markers[player.id] && player.lat && player.lon) { 
-              markers[player.id].setLatLng([player.lat, player.lon]);
-            }
-            if (polylines[player.id] && player.path) {
-              var newCoords = player.path.map(function(pt) {
-                return [pt.lat, pt.lon];  
-              });
-              polylines[player.id].setLatLngs(newCoords);
-            }
+            markers[p.id].setLatLng(latlng);
+            markers[p.id].setIcon(getIcon(p.icon));
+          }
+    
+          const pathCoords = p.path.map(pt => [pt.lat, pt.lon]);
+          if (!polylines[p.id]) {
+            polylines[p.id] = L.polyline(pathCoords, {
+              color: p.icon === 'purple' ? '#9791d8' : p.icon,
+              weight: 5,
+              dashArray: '10, 10',
+              className: 'polyline-shadow'
+            }).addTo(map);
+          } else {
+            polylines[p.id].setLatLngs(pathCoords);
           }
         });
       })
-      .catch(error => console.error('Location update error:', error));
+      .catch(e => console.error('Marker update error:', e));
     }
     
-    updateMarkers();
-    setInterval(updateMarkers, 3000);
-
     document.querySelectorAll('.disqualify').forEach(function(button) {
       button.addEventListener('click', function() {
         if (!confirm('Are you sure you want to disqualify this player?')) {
@@ -431,70 +455,95 @@
         });
     });
 
-    const chart = echarts.init(document.getElementById('speed-chart'));
+  const chart = echarts.init(document.getElementById('speed-chart'));
 
-    function updateSpeedChart() {
-      fetch(window.location.href, {
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-      })
-      .then(response => response.json())
-      .then(data => {
-        const names = [];
-        const seriesData = [];
-
-        data.players.forEach(player => {
-          if (!player.disqualified) {
-            names.push(player.name);
-            seriesData.push({
-              value: player.speed || 0,
-              itemStyle: { color: player.icon }
-            });
+  function updateSpeedChart() {
+    fetch(window.location.href, { headers:{'X-Requested-With':'XMLHttpRequest'} })
+      .then(r=>r.json())
+      .then(data=>{
+        const names = [], seriesData = [];
+        data.players.forEach(p=>{
+          if (!p.disqualified) {
+            names.push(p.name);
+            seriesData.push({ value: p.speed||0, itemStyle:{ color: p.icon } });
           }
         });
-
-        const option = {
-          title: {
-            text: 'Current Player Speeds (km/h)',
-            left: 'center'
-          },
-          tooltip: { trigger: 'item' },
-          xAxis: {
-            type: 'category',
-            data: names
-          },
-          yAxis: {
-            type: 'value',
-            min: 0,
-            name: 'Speed (km/h)'
-          },
-          series: [{
-            name: 'Speed',
-            type: 'bar',
-            data: seriesData
-          }]
-        };
-
-        chart.setOption(option);
+        chart.setOption({
+          title:{ text:'Current Player Speeds (km/h)', left:'center' },
+          xAxis:{ type:'category', data:names },
+          yAxis:{ type:'value', min:0, name:'Speed (km/h)' },
+          series:[{ name:'Speed', type:'bar', data:seriesData }]
+        });
         chart.resize();
       })
-      .catch(err => console.error('Speed chart update error:', err));
-    }
+      .catch(e=>console.error('Speed chart update error:',e));
+  }
 
-    updateSpeedChart();
+  function renderPlayersTable(players) {
+    const tbody = document.getElementById('players-body');
+    let html = '';
+    players.forEach(p => {
+      const trStyle = p.disqualified ? 'style="text-decoration:line-through"' : '';
+      const btnDisabled = p.disqualified ? 'disabled' : '';
+      html += `
+        <tr ${trStyle}>
+          </td>
+          <td>${p.name}</td>
+          <td>${p.score.toFixed(1)}</td>
+          <td>
+            <button
+              class="disqualify"
+              data-player-id="${p.id}"
+              ${btnDisabled}
+            >Disqualify</button>
+          </td>
+        </tr>
+      `;
+    });
+    tbody.innerHTML = html;
 
-    setInterval(async () => {
-      try {
-        const res = await fetch(monitorUrl, {
-          headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        });
-        if (!res.ok) throw new Error(res.statusText);
-        const data = await res.json();
-        updateSpeedChartWith(data.players);
-      } catch (err) {
-        
-        console.warn('Speed chart update error (ignored):', err);
-      }
-    }, 3000);
+    document.querySelectorAll('.disqualify').forEach(btn => {
+      btn.addEventListener('click', function() {
+        if (!confirm('Are you sure you want to disqualify this player?')) {
+          return;
+        }
+        const playerId = this.dataset.playerId;
+        fetch(window.location.href, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: `player_id=${playerId}`
+        })
+        .then(r => r.json())
+        .then(data => {
+          if (data.status === 'success') {
+            updateAll();
+          }
+        })
+        .catch(err => console.error('Disqualify error:', err));
+      });
+    });
+  }
+  
+  function updateAll() {
+    fetch(window.location.href, { headers:{ 'X-Requested-With':'XMLHttpRequest' } })
+      .then(r => r.json())
+      .then(data => {
+        updateMarkers();
+  
+        updateSpeedChart();
+  
+        renderPlayersTable(data.players);
+      })
+      .catch(e => console.error('Update error:', e));
+  }
+
+  updateAll();
+  setInterval(updateAll, 3000);
+  
   </script>
 </body>
 </html>
