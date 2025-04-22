@@ -85,9 +85,6 @@ def main_menu(request, creator_id):
         'creator_id': creator_id, 
     })
 
-
-
-
 def create_manage(request, creator_id, game_id):
     game = Game.objects.filter(game_id=game_id, game_creator_id=creator_id).first()
     waypoints = game.waypoints.all().order_by('waypoint_id')
