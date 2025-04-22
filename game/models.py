@@ -180,6 +180,7 @@ class UserScore(models.Model):
     ques_score = models.FloatField()
     total_score = models.FloatField()
     is_disqualified = models.BooleanField(default=False)
+    end_date_time = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"Score for {self.user.username} in {self.game.game_name}" 
