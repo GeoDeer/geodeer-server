@@ -5,6 +5,7 @@ import random
 from datetime import datetime
 from django.utils import timezone
 from django.contrib.gis.geos import Point
+from django.db import transaction
 
 class User(models.Model):
     user_id = models.BigAutoField(primary_key=True)
@@ -143,6 +144,18 @@ class UserLocation(models.Model):
 
                 if self.time_diff and self.time_diff > 0:
                     self.speed = (self.distance / 1000) / self.time_diff
+                    
+            else:
+                transaction.on_commit(lambda: UserScore.objects.get_or_create(
+                    user=self.user,
+                    game=self.game,
+                    defaults={
+                        'location_score': 0.0,
+                        'time_score': 0.0,
+                        'ques_score': 0.0,
+                        'total_score': 0.0,
+                    }
+                ))
         
         super().save(*args, **kwargs)
 
