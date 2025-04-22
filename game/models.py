@@ -61,7 +61,7 @@ class Waypoint(models.Model):
     def __str__(self):
         return self.waypoint_name
 
-    def create_buffer(self, buffer_distance=5):
+    def create_buffer(self, buffer_distance=20):
         geom = self.waypoint_geom
         if geom.srid is None:
             raise ValueError("SRID not defined.")
