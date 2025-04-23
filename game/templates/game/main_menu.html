@@ -74,7 +74,7 @@
       margin-bottom: 10px;
       transition: opacity 0.3s;
       text-decoration: none;
-      display: inline-block; /* EKLENDİ */
+      display: inline-block;
     }
 
     button:hover,
@@ -106,13 +106,11 @@
       padding: 10px 0;
     }
 
-    /* EKLENDİ: form’lar yan yana dursun diye */
     td form {
       display: inline-block;
       margin-bottom: 10px;
     }
 
-    /* Videoyu tüm cihazlarda düzgün göster */
     video {
       width: 100%;
       height: auto;
@@ -136,9 +134,12 @@
           Your browser does not support the video tag.
         </video>
       </div>
-      <p>
+
+      <!-- BURASI DEĞİŞTİ -->
+      <p style="margin-top: 30px;">
         GeoDeer | Treasure Hunt Game is a location-based treasure hunt game. Its main purpose is for players to visit specific real-world locations, complete various tasks, and earn rewards. By merging digital and physical experiences, players embark on an interactive, exploration-driven adventure.
       </p>
+
       <ul>
         <li>Register or log in with your existing account to start the game.</li>
         <li>Explore the treasure locations marked on the map.</li>
@@ -152,10 +153,13 @@
     <section id="right-panel">
       <h2>My Games</h2>
       <p>Your previously created games are listed here.</p>
-      <form method="post" style="margin-bottom: 10px;">
+
+      <!-- BURASI DEĞİŞTİ -->
+      <form method="post" style="margin-top: 20px;">
         {% csrf_token %}
         <button type="submit">Create Game</button>
       </form>
+
       <table>
         <thead>
           <tr>
