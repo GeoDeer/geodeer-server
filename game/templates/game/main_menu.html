@@ -5,7 +5,6 @@
   <meta charset="UTF-8" />
   <title>Main Menu</title>
   <style>
-    /* Reset and Base Styles */
     * {
       margin: 0;
       padding: 0;
@@ -13,7 +12,6 @@
       font-family: "Poppins", sans-serif;
     }
 
-    /* Color Variables */
     :root {
       --dark-green: #296B45;
       --white: #FFFFFF;
@@ -23,7 +21,6 @@
       --vibrant-orange: #FF7F50;
     }
 
-    /* HTML and Body Settings */
     html, body {
       width: 100%;
       height: 100%;
@@ -32,7 +29,6 @@
       flex-direction: column;
     }
 
-    /* Header */
     #header {
       background-color: var(--dark-green);
       color: var(--white);
@@ -42,28 +38,6 @@
       padding: 10px 20px;
     }
 
-    #header h1 {
-      font-size: 1.5rem;
-    }
-
-    #header .header-right {
-      display: flex;
-      gap: 20px;
-      align-items: center;
-    }
-
-    #header .header-right a {
-      color: var(--white);
-      text-decoration: none;
-      font-size: 1rem;
-      transition: opacity 0.3s;
-    }
-
-    #header .header-right a:hover {
-      opacity: 0.8;
-    }
-
-    /* Main Content */
     #main-content {
       display: flex;
       flex: 1;
@@ -71,7 +45,6 @@
       gap: 20px;
     }
 
-    /* Left Panel (Game Description) */
     #left-panel {
       flex: 1;
       background-color: var(--white);
@@ -79,22 +52,6 @@
       border-radius: 5px;
     }
 
-    #left-panel h2 {
-      margin-bottom: 10px;
-    }
-
-    #left-panel p {
-      margin-top: 20px;
-      line-height: 1.5;
-    }
-
-    #left-panel ul {
-      margin-top: 10px;
-      list-style-type: disc;
-      padding-left: 20px;
-    }
-
-    /* Right Panel (My Games) */
     #right-panel {
       flex: 1.2;
       background-color: var(--white);
@@ -104,16 +61,6 @@
       flex-direction: column;
     }
 
-    #right-panel h2 {
-      margin-bottom: 10px;
-    }
-
-    #right-panel p {
-      margin-bottom: 20px;
-      line-height: 1.5;
-    }
-
-    /* Buttons */
     button,
     .btn {
       background-color: var(--vibrant-orange);
@@ -127,6 +74,7 @@
       margin-bottom: 10px;
       transition: opacity 0.3s;
       text-decoration: none;
+      display: inline-block; /* EKLENDİ */
     }
 
     button:hover,
@@ -135,7 +83,6 @@
       text-decoration: none;
     }
 
-    /* Games Table */
     table {
       width: 100%;
       border-collapse: collapse;
@@ -152,37 +99,42 @@
       background-color: var(--soft-blue);
     }
 
-    /* Footer */
     #footer {
       background-color: var(--dark-green);
       color: var(--white);
       text-align: center;
       padding: 10px 0;
     }
+
+    /* EKLENDİ: form’lar yan yana dursun diye */
+    td form {
+      display: inline-block;
+      margin-bottom: 10px;
+    }
+
+    /* Videoyu tüm cihazlarda düzgün göster */
+    video {
+      width: 100%;
+      height: auto;
+      max-height: 500px;
+      border-radius: 12px;
+    }
   </style>
 </head>
 <body>
-  <!-- Header -->
-  {% comment %} <header id="header">
-    <h1>GeoDeer | Treasure Hunt Game</h1>
-    <div class="header-right">
-      <a href="#">Profile</a>
-      <a href="#">Logout</a>
-    </div>
-  </header> {% endcomment %}
 
   <div id="header">
     <div>GeoDeer</div>
     <div>A Map-Based Treasure Hunt Game</div>
   </div>
 
-  <!-- Main Content -->
   <main id="main-content">
-    <!-- Left Panel: Game Description -->
     <section id="left-panel">
-      <h2>Game Description</h2>
-      <div style="margin-top: 20px; border: 1px solid var(--black); height: 200px; display: flex; align-items: center; justify-content: center;">
-        <span>Video / Image Area</span>
+      <div style="margin-top: 20px;">
+        <video controls loop autoplay muted playsinline>
+          <source src="{% static 'videos/geodeer_intro.mp4' %}" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
       </div>
       <p>
         GeoDeer | Treasure Hunt Game is a location-based treasure hunt game. Its main purpose is for players to visit specific real-world locations, complete various tasks, and earn rewards. By merging digital and physical experiences, players embark on an interactive, exploration-driven adventure.
@@ -197,60 +149,50 @@
       </ul>
     </section>
 
-    <!-- Right Panel: My Games -->
-<section id="right-panel">
-  <h2>My Games</h2>
-  <p>Your previously created games are listed here.</p>
-  <form method="post" style="margin-bottom: 10px;">
-    {% csrf_token %}
-    <button type="submit">Create Game</button>
-  </form>
-  <table>
-    <thead>
-      <tr>
-        <th>Game Name</th>
-        <th>Invite ID</th>
-        <th>Date</th>
-        <th>Time</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for game in games %}
-      <tr>
-        <td>{{ game.game_name }}</td>
-        <td>{{ game.invite_id }}</td>
-        <td>{{ game.start_date_time|date:"d/m/Y" }}</td>
-        <td>{{ game.start_date_time|date:"H:i" }}</td>
-        <td>
-          <a href="{% url 'monitor' creator_id=creator_id pk=game.game_id %}"
-             class="btn">Monitor</a>
-             <a href="{% url 'results' creator_id=creator_id game_id=game.game_id %}"
-             class="btn">Results</a>
-          <a href="{% url 'create_manage' creator_id=creator_id game_id=game.game_id %}"
-             class="btn">Manage</a>
-          <form method="post" style="display:inline;">
-            {% csrf_token %}
-            <button type="submit"
-                    name="delete_game"
-                    value="{{ game.game_id }}"
-                    class="btn">
-              Delete
-            </button>
-          </form>
-        </td>
-      </tr>
-      {% empty %}
-      <tr>
-        <td colspan="5">No games found or loading.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</section>
+    <section id="right-panel">
+      <h2>My Games</h2>
+      <p>Your previously created games are listed here.</p>
+      <form method="post" style="margin-bottom: 10px;">
+        {% csrf_token %}
+        <button type="submit">Create Game</button>
+      </form>
+      <table>
+        <thead>
+          <tr>
+            <th>Game Name</th>
+            <th>Invite ID</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for game in games %}
+          <tr>
+            <td>{{ game.game_name }}</td>
+            <td>{{ game.invite_id }}</td>
+            <td>{{ game.start_date_time|date:"d/m/Y" }}</td>
+            <td>{{ game.start_date_time|date:"H:i" }}</td>
+            <td>
+              <a href="{% url 'monitor' creator_id=creator_id pk=game.game_id %}" class="btn">Monitor</a>
+              <a href="{% url 'results' creator_id=creator_id game_id=game.game_id %}" class="btn">Results</a>
+              <a href="{% url 'create_manage' creator_id=creator_id game_id=game.game_id %}" class="btn">Manage</a>
+              <form method="post">
+                {% csrf_token %}
+                <button type="submit" name="delete_game" value="{{ game.game_id }}" class="btn">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5">No games found or loading.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
   </main>
 
-  <!-- Footer -->
   <footer id="footer">
     <p>&copy; 2025 GeoDeer | All rights reserved</p>
   </footer>
