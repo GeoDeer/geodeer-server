@@ -363,8 +363,7 @@
     left: auto;
     right: 440px;
     z-index: 9999 !important;
-  }
-  }
+
 
 
 </style>
@@ -391,7 +390,7 @@
           <input type="text" class="wp-answer" value="{{ wp.answer }}" disabled />
           <label>Hint:</label>
           <input type="text" class="wp-hint" value="{{ wp.hint }}" disabled />
-          <label>Difficulty Level (1-10):</label>
+          <label>Question Difficulty Level (1-10):</label>
           <input type="range" min="1" max="10" class="difficulty-slider" value="{{ wp.ques_dif_level }}" disabled />
         {% endif %}
         <button class="btn-coord" onclick="showCoordinates({{ forloop.counter }})">Show Coordinates</button>
@@ -431,7 +430,7 @@
   </div>
   <div id="footer">
     <a href="{% url 'main_menu' creator_id %}" class="btn">Back to Main Menu</a>
-    <button id="saveGameBtn" type="button" class="save-game-btn">Save Game</button>
+    <button id="saveGameBtn" type="button" class="save-game-btn" style="pointer-events: none; opacity: 0.5;">Save Game</button>
   </div>
   <div id="gameInfoPanel" class="game-info-panel">
     {% comment %} <div class="toggle-handle" onclick="toggleGamePanel()">
@@ -683,7 +682,7 @@
       <input type="text" class="wp-answer" placeholder="Please enter an answer." />
       <label>Hint:</label>
       <input type="text" class="wp-hint" placeholder="Please enter a hint." />
-      <label>Difficulty Level (1-10):</label>
+      <label>Question Difficulty Level (1-10):</label>
       <input type="range" min="1" max="10" class="difficulty-slider" oninput="this.previousElementSibling.innerText=this.value" />
       <button class="btn-coord" onclick="showCoordinates(${waypointCount})">Show Coordinates</button>
       <button class="btn-edit" onclick="editPin(${waypointCount})" style="display:none;">Edit</button>

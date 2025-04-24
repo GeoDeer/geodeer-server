@@ -162,7 +162,7 @@
       <!-- BURASI DEĞİŞTİ -->
       <form method="post" style="margin-top: 20px;">
         {% csrf_token %}
-        <button type="submit">Create Game</button>
+        <button type="submit" style="pointer-events: none; opacity: 0.5;">Create Game</button>
       </form>
 
       <table>
@@ -183,12 +183,12 @@
             <td>{{ game.start_date_time|date:"d/m/Y" }}</td>
             <td>{{ game.start_date_time|date:"H:i" }}</td>
             <td>
-              <a href="{% url 'monitor' creator_id=creator_id pk=game.game_id %}" class="btn">Monitor</a>
+                <a href="{% url 'monitor' creator_id=creator_id pk=game.game_id %}" class="btn">Monitor</a>
               <a href="{% url 'results' creator_id=creator_id game_id=game.game_id %}" class="btn">Results</a>
               <a href="{% url 'create_manage' creator_id=creator_id game_id=game.game_id %}" class="btn">Manage</a>
               <form method="post">
                 {% csrf_token %}
-                <button type="submit" name="delete_game" value="{{ game.game_id }}" class="btn">Delete</button>
+                <button type="submit" name="delete_game" value="{{ game.game_id }}" class="btn" style="pointer-events: none; opacity: 0.5;">Delete</button>
               </form>
             </td>
           </tr>

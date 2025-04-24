@@ -232,9 +232,19 @@ def monitor(request, pk, creator_id):
         })
 
     sorted_players = sorted(players, key=lambda p: p['id'])
-    available_colors = ['cyan', 'red', 'purple', 'yellow']
+    # available_colors = ['cyan', 'red', 'purple', 'yellow']
     for i, player in enumerate(sorted_players):
-        player['icon'] = available_colors[i % len(available_colors)]
+        # player['icon'] = available_colors[i % len(available_colors)]     for demo
+        if player['id'] == 1:
+            player['icon'] = 'red'
+        elif player['id'] == 3:
+            player['icon'] = 'yellow'
+        elif player['id'] == 4:
+            player['icon'] = 'purple'
+        elif player['id'] == 5:
+            player['icon'] = 'cyan'
+        elif player['id'] == 6:
+            player['icon'] = 'cyan'
 
     waypoints_qs = game.waypoints.all().order_by('waypoint_id')
     waypoints = []

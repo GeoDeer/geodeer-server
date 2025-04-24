@@ -218,7 +218,8 @@
   <!-- Subheader Section -->
   <div id="subheader">
     <div>{{ game }}</div>
-    <div>Remaining Time: {{ game.start_date_time|timeuntil }}</div>
+    {% comment %} <div>Remaining Time: {{ game.start_date_time|timeuntil }}</div> {% endcomment %}
+    <div>[demo]</div>
   </div>
 
   <!-- Main Section -->
@@ -243,6 +244,7 @@
               class="disqualify"
               data-player-id="{{ player.id }}"
               {% if player.disqualified %} disabled {% endif %}
+              style="pointer-events: none; opacity: 0.5;"
             >
               Disqualify
             </button>
@@ -495,6 +497,7 @@
               class="disqualify"
               data-player-id="${p.id}"
               ${btnDisabled}
+              style="pointer-events: none; opacity: 0.5;"
             >Disqualify</button>
           </td>
         </tr>
