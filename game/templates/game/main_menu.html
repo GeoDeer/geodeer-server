@@ -55,7 +55,7 @@
     #right-panel {
       flex: 1.2;
       background-color: var(--white);
-      padding: 20px;
+      padding: 30px;
       border-radius: 5px;
       display: flex;
       flex-direction: column;
@@ -129,7 +129,7 @@
   <main id="main-content">
     <section id="left-panel">
       <!-- Responsive video container -->
-      <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; margin-top: 20px;">
+      <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 20px; margin-top: 20px;">
         <iframe 
           src="https://www.youtube.com/embed/_gHXKwkuxKY?autoplay=1&mute=1&loop=1&playlist=_gHXKwkuxKY"
           title="GeoDeer Intro Video"
@@ -142,13 +142,16 @@
 
       <!-- BURASI DEĞİŞTİ -->
       <p style="margin-top: 30px;">
+        
+
         GeoDeer | Treasure Hunt Game is a location-based treasure hunt game. Its main purpose is for players to visit specific real-world locations, complete various tasks, and earn rewards. By merging digital and physical experiences, players embark on an interactive, exploration-driven adventure.
       </p>
 
-      <ul>
-        <li>Register or log in with your existing account to start the game.</li>
-        <li>Explore the treasure locations marked on the map.</li>
-        <li>Visit designated spots to complete tasks or answer questions.</li>
+      <ul style="margin-left: 20px; margin-top: 20px;">
+       
+        <li> Register or log in with your existing account to start the game.</li>
+        <li> Explore the treasure locations marked on the map.</li>
+        <li> Visit designated spots to complete tasks or answer questions.</li>
         <li>Earn points and virtual treasures by successfully completing tasks.</li>
         <li>Use your points to progress further or redeem various rewards.</li>
         <li>Face more challenging tasks and uncover new discoveries as you play.</li>
@@ -188,7 +191,7 @@
               <a href="{% url 'create_manage' creator_id=creator_id game_id=game.game_id %}" class="btn">Manage</a>
               <form method="post">
                 {% csrf_token %}
-                <button type="submit" name="delete_game" value="{{ game.game_id }}" class="btn" style="pointer-events: none; opacity: 0.5;">Delete</button>
+                <button type="submit" name="delete_game" value="{{ game.game_id }}" class="btn" style="pointer-events: none; opacity: 0.5;" >Delete</button>
               </form>
             </td>
           </tr>
