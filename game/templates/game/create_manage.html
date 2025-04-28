@@ -430,7 +430,9 @@
   </div>
   <div id="footer">
     <a href="{% url 'main_menu' creator_id %}" class="btn">Back to Main Menu</a>
-    <button id="saveGameBtn" type="button" class="save-game-btn" style="pointer-events: none; opacity: 0.5;">Save Game</button>
+    {% comment %} for demo {% endcomment %}
+    {% comment %} <button id="saveGameBtn" type="button" class="save-game-btn" style="pointer-events: none; opacity: 0.5;">Save Game</button> {% endcomment %} 
+    <button id="saveGameBtn" type="button" class="save-game-btn">Save Game</button>
   </div>
   <div id="gameInfoPanel" class="game-info-panel">
     {% comment %} <div class="toggle-handle" onclick="toggleGamePanel()">

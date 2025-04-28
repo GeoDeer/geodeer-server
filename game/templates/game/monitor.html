@@ -218,8 +218,11 @@
   <!-- Subheader Section -->
   <div id="subheader">
     <div>{{ game }}</div>
-    {% comment %} <div>Remaining Time: {{ game.start_date_time|timeuntil }}</div> {% endcomment %}
-    <div>[demo]</div>
+    {% comment %} for demo  {% endcomment %}
+    {% comment %} <div>Remaining Time: {{ game.start_date_time|timeuntil }}</div> {% endcomment %} 
+    <div>Remaining Time: {{ game.start_date_time|timeuntil }}</div>
+    {% comment %} for demo {% endcomment %}
+    {% comment %} <div>[demo]</div> {% endcomment %} 
   </div>
 
   <!-- Main Section -->

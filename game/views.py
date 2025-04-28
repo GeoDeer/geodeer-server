@@ -133,6 +133,7 @@ def create_manage(request, creator_id, game_id):
             )
 
         waypoints_data = request.POST.get('waypoints_data', '[]')
+    
         try:
             wps = json.loads(waypoints_data)
         except json.JSONDecodeError:

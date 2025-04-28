@@ -165,7 +165,9 @@
       <!-- BURASI DEĞİŞTİ -->
       <form method="post" style="margin-top: 20px;">
         {% csrf_token %}
-        <button type="submit" style="pointer-events: none; opacity: 0.5;">Create Game</button>
+        {% comment %} for demo {% endcomment %}
+        {% comment %} <button type="submit" style="pointer-events: none; opacity: 0.5;">Create Game</button> {% endcomment %}
+        <button type="submit" class="btn">Create Game</button>
       </form>
 
       <table>
@@ -191,7 +193,9 @@
               <a href="{% url 'create_manage' creator_id=creator_id game_id=game.game_id %}" class="btn">Manage</a>
               <form method="post">
                 {% csrf_token %}
-                <button type="submit" name="delete_game" value="{{ game.game_id }}" class="btn" style="pointer-events: none; opacity: 0.5;" >Delete</button>
+                {% comment %} for demo {% endcomment %}
+                {% comment %} <button type="submit" name="delete_game" value="{{ game.game_id }}" class="btn" style="pointer-events: none; opacity: 0.5;" >Delete</button> {% endcomment %} 
+                <button type="submit" name="delete_game" value="{{ game.game_id }}" class="btn">Delete</button>
               </form>
             </td>
           </tr>
