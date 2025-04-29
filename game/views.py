@@ -6,7 +6,8 @@ from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.auth.models import User
 from django.contrib.gis.geos import Point
 from django.utils import timezone
-from .models import Game, UserScore, UserLocation, Waypoint, User
+from .models import Game, UserScore, UserLocation, Waypoint, User, Question
+from .services.score_calculator import calculate_scores_for_game
 
 import datetime
 import json
@@ -334,3 +335,8 @@ def results(request, game_id, creator_id):
         'winner':     sorted_players[0] if sorted_players else None,
         'speed_data': json.dumps(speed_data),
     })
+
+def calculate_scores(request, game_id, creator_id):
+    game = get_object_or_404(Game, pk=game_id, game_creator_id=creator_id)
+    calculate_scores_for_game(game)
+    return redirect('results', game_id=game_id, creator_id=creator_id)

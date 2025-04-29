@@ -1,11 +1,11 @@
+import random
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GEOSGeometry
-
-import random
 from datetime import datetime
 from django.utils import timezone
 from django.contrib.gis.geos import Point
 from django.db import transaction
+from .services.score_calculator import calculate_scores_for_game
 
 class User(models.Model):
     user_id = models.BigAutoField(primary_key=True)
@@ -175,16 +175,25 @@ class UserLocation(models.Model):
 class UserScore(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='scores')
     game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='scores')
-    location_score = models.FloatField()
-    time_score = models.FloatField()
-    ques_score = models.FloatField()
-    total_score = models.FloatField()
+    location_score = models.FloatField(default=0.0)
+    time_score = models.FloatField(default=0.0)
+    ques_score = models.FloatField(default=0.0)
+    total_score = models.FloatField(default=0.0)
     is_disqualified = models.BooleanField(default=False)
     end_date_time = models.DateTimeField(null=True, blank=True)
 
-    def __str__(self):
-        return f"Score for {self.user.username} in {self.game.game_name}" 
+    def save(self, *args, **kwargs):
+        old_end = None
+        if self.pk:
+            old_end = UserScore.objects.filter(pk=self.pk).values_list('end_date_time', flat=True).first()
 
+        super().save(*args, **kwargs)
+
+        if self.end_date_time and old_end != self.end_date_time:
+            calculate_scores_for_game(self.game)
+
+    def __str__(self):
+        return f"Score for {self.user.username} in {self.game.game_name}"
 class Question(models.Model):
     game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='questions')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='questions')
