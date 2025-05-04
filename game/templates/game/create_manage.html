@@ -395,7 +395,8 @@
         <button class="btn-coord" onclick="showCoordinates({{ forloop.counter }})">Show Coordinates</button>
         <button class="btn-edit" onclick="editPin({{ forloop.counter }})">Edit</button>
         <button class="btn-save-pin" onclick="savePin({{ forloop.counter }})" style="display:none;">Save</button>
-        {% if not forloop.first %}
+        {% comment %} Only show delete for the last waypoint, and not if it is also the first waypoint {% endcomment %}
+        {% if forloop.last and not forloop.first %}
         <button class="btn-delete" onclick="deletePin({{ forloop.counter }})">Delete</button>
         {% endif %}
       </div>
@@ -682,35 +683,55 @@
   }
 
   function deletePin(i) {
+    // This function is now only called for the LAST waypoint (index i = waypointCount)
     if (!isSaved) {
       alert('Please save the current waypoint before delete.');
       return;
     }
 
-    currentEditIndex = null;
+    currentEditIndex = null; // Reset edit index
     isEditable = false;
     isSaved = true;
-  
-    // const box = document.querySelector(`[data-index="${i}"]`);
-    // if (box && box.dataset.last === 'true') {
-    //    lastPointCount = Math.max(0, lastPointCount - 1);
-   // } 
 
-    waypointCount = Math.max(0, waypointCount - 1);
-
+    // Remove the marker for the waypoint being deleted
     if (markers[i]) {
       map.removeLayer(markers[i]);
       delete markers[i];
     }
-  
+
+    // Remove the waypoint box from the sidebar
     const box = document.querySelector(`[data-index="${i}"]`);
-    if (box) box.remove();
+    if (box) {
+      box.remove();
+    }
 
-    document.querySelectorAll('.waypoint-box').forEach((box, newIndex) => {
-      box.dataset.index = newIndex + 1;
-    });
+    // Decrement the total count
+    waypointCount = Math.max(0, waypointCount - 1); // Ensure it doesn't go below 0
 
-    updateTitles();
+    // If there's a new last waypoint (and it's not the start point), add the delete button to it
+    if (waypointCount > 1) {
+      const newLastBox = document.querySelector(`.waypoint-box[data-index="${waypointCount}"]`);
+      if (newLastBox && !newLastBox.querySelector('.btn-delete')) {
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'btn-delete';
+        deleteButton.textContent = 'Delete';
+        deleteButton.onclick = function() { deletePin(waypointCount); };
+        // Add it after the save button (or edit button if save is hidden)
+        const saveBtn = newLastBox.querySelector('.btn-save-pin');
+        const editBtn = newLastBox.querySelector('.btn-edit');
+        if (saveBtn && saveBtn.style.display !== 'none') {
+            saveBtn.parentNode.insertBefore(deleteButton, saveBtn.nextSibling);
+        } else if (editBtn) {
+             editBtn.parentNode.insertBefore(deleteButton, editBtn.nextSibling);
+        } else {
+            // Fallback: append to the box if buttons aren't found as expected
+            newLastBox.appendChild(deleteButton);
+        }
+      }
+    }
+
+    // No need to re-index or update titles generally, as only the last is removed.
+    // updateTitles(); // Keep if titles absolutely need re-numbering, but typically not required for this logic. Let's remove for now.
   }
 
   map.on('dblclick', function (e) {
@@ -748,6 +769,18 @@
       alert('Maximum 7 waypoints (including Start Point and Last Waypoint)!');
       return;
     }
+
+    // --- Start: Remove delete button from previous last waypoint ---
+    if (waypointCount > 1) { // Check if there is a waypoint other than the start point
+        const previousLastBox = document.querySelector(`.waypoint-box[data-index="${waypointCount}"]`);
+        if (previousLastBox) {
+            const existingDeleteBtn = previousLastBox.querySelector('.btn-delete');
+            if (existingDeleteBtn) {
+                existingDeleteBtn.remove();
+            }
+        }
+    }
+    // --- End: Remove delete button ---
 
     waypointCount++;
     var sb = document.getElementById('sidebar');

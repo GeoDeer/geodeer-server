@@ -219,8 +219,6 @@
         flex-direction: row;
       }
     }
-
-
     
   </style>
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
@@ -232,9 +230,9 @@
     <div>A Map-Based Treasure Hunt Game</div>
   </div>
 
-  <div id="subheader">
+  <div id="subheader" data-utc-datetime="{{ game.start_date_time.isoformat }}">
     <div>{{ game.game_name }}</div>
-    <div>{{ game.start_date_time|localtime|date:"Y-m-d H:i" }}</div>
+    <div id="gameTimeDisplay">{{ game.start_date_time|date:"Y-m-d H:i" }}</div>
   </div>
 
   <div id="main">
@@ -294,6 +292,43 @@
     function goMonitor() {
       window.location.href = "{% url 'monitor' game.game_creator_id game.game_id %}";
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const subheader = document.getElementById('subheader');
+        const gameTimeDisplay = document.getElementById('gameTimeDisplay');
+
+        if (subheader && gameTimeDisplay) {
+            const utcDateTimeString = subheader.dataset.utcDatetime;
+            if (utcDateTimeString && utcDateTimeString !== 'None') {
+                try {
+                    const dateObj = new Date(utcDateTimeString);
+                    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+                    const options = {
+                        year: 'numeric', month: '2-digit', day: '2-digit',
+                        hour: '2-digit', minute: '2-digit',
+                        timeZone: userTimezone 
+                    };
+
+                    const formatter = new Intl.DateTimeFormat('sv-SE', options);
+                   
+                     const year = dateObj.getFullYear();
+                     const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                     const day = String(dateObj.getDate()).padStart(2, '0');
+                     const hours = String(dateObj.getHours()).padStart(2, '0');
+                     const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                     gameTimeDisplay.textContent = `${year}-${month}-${day} ${hours}:${minutes}`;
+
+                } catch (e) {
+                    console.error("Error formatting game time:", e);
+                    gameTimeDisplay.textContent = "Error"; 
+                }
+            } else {
+                gameTimeDisplay.textContent = "-"; 
+            }
+        }
+    });
+  
 
     const speedData = JSON.parse('{{ speed_data|escapejs }}');
     const chart = echarts.init(document.getElementById('speed-chart'));

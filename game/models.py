@@ -58,6 +58,7 @@ class Waypoint(models.Model):
     ques_dif_level = models.FloatField()
     waypoint_geom = models.PointField(null=True, blank=True)
     waypoint_buffer = models.PolygonField(null=True, blank=True)
+    order = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return self.waypoint_name
@@ -105,6 +106,9 @@ class Waypoint(models.Model):
                 answer_time=0, 
                 is_correct=False  
             )
+            
+    class Meta:
+        ordering = ['order'] 
     
 class UserLocation(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='locations')

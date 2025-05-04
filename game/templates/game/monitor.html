@@ -470,6 +470,11 @@
         });
     });
 
+    var waypointBounds = L.latLngBounds(Object.values(waypointMarkers).map(marker => marker.getLatLng()));
+    if (waypointBounds.isValid()) {
+        map.fitBounds(waypointBounds, { padding: [50, 50] });
+    }
+
   const chart = echarts.init(document.getElementById('speed-chart'));
 
   function updateSpeedChart() {
@@ -601,7 +606,7 @@
              remainingTimeDisplay.textContent = "Not Started Yet";
              if (countdownInterval) clearInterval(countdownInterval);
              countdownInterval = null;
-          } else { // finished or unknown
+          } else { 
              remainingTimeDisplay.textContent = "Game Over";
              if (countdownInterval) clearInterval(countdownInterval);
              countdownInterval = null;
@@ -618,7 +623,7 @@
   }
 
   updateAll();
-  
+
   updateInterval = setInterval(updateAll, 3000);
   
   </script>
