@@ -5,6 +5,7 @@ from datetime import datetime
 from django.utils import timezone
 from django.contrib.gis.geos import Point
 from django.db import transaction
+from datetime import timedelta
 from .services.score_calculator import calculate_scores_for_game
 
 class User(models.Model):
@@ -117,6 +118,19 @@ class UserLocation(models.Model):
     speed = models.FloatField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
+        now = timezone.now()
+        try:
+            duration_seconds = int(self.game.time)
+            end_time = self.game.start_date_time + timedelta(seconds=duration_seconds)
+
+            if now >= end_time:
+                print(f"Info: Game {self.game.game_id} finished. Skipping UserLocation save for user {self.user.user_id}.")
+                return
+
+        except (TypeError, ValueError, AttributeError):
+            print(f"Warning: Could not determine game end time for UserLocation save (Game: {self.game_id if hasattr(self, 'game_id') else 'N/A'}). Allowing save.")
+            pass
+
         if not self.location_geom and self.lat is not None and self.lon is not None:
             self.location_geom = Point(self.lon, self.lat, srid=4326)
 
