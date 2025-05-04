@@ -577,21 +577,18 @@
 
   document.addEventListener('DOMContentLoaded', startCountdown);
 
-  // Store the interval ID so we can clear it later
   let updateInterval = null;
 
   function updateAll() {
     fetch(window.location.href, { headers:{ 'X-Requested-With':'XMLHttpRequest' } })
       .then(r => r.json())
       .then(data => {
-        // Update map elements only if the game is not finished
         if (data.game_state !== 'finished') {
             updateMarkers();
             updateSpeedChart();
             renderPlayersTable(data.players);
         }
 
-        // Always update game state and remaining time display logic
         if (data.game_state && data.remaining_seconds !== undefined) {
           if (data.game_state === 'running' && data.remaining_seconds > 0) {
             remainingSeconds = data.remaining_seconds;
@@ -609,11 +606,10 @@
              if (countdownInterval) clearInterval(countdownInterval);
              countdownInterval = null;
 
-             // Stop further AJAX updates if the game is finished
              if (updateInterval) {
                 console.log("Game finished. Stopping further updates.");
                 clearInterval(updateInterval);
-                updateInterval = null; // Clear the variable too
+                updateInterval = null; 
              }
           }
         }
@@ -621,9 +617,8 @@
       .catch(e => console.error('Update error:', e));
   }
 
-  // Initial call to load data
   updateAll();
-  // Start the interval and store its ID
+  
   updateInterval = setInterval(updateAll, 3000);
   
   </script>
