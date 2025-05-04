@@ -350,56 +350,62 @@
       }).addTo(map);
     {% endfor %}
   
-    function updateMarkers() {
-      fetch(window.location.href, {
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-      })
-      .then(r => r.json())
-      .then(data => {
-        data.players.forEach(p => {
+    function updateMarkers(playersData) {
+      const activePlayerIds = new Set();
+
+      playersData.forEach(p => {
+          activePlayerIds.add(String(p.id));
+
           if (p.disqualified) {
-            if (markers[p.id]) {
-              map.removeLayer(markers[p.id]);
-              delete markers[p.id];
-            }
-            if (polylines[p.id]) {
-              map.removeLayer(polylines[p.id]);
-              delete polylines[p.id];
-            }
-            return;
+              if (markers[p.id]) {
+                  map.removeLayer(markers[p.id]);
+                  delete markers[p.id];
+              }
+              if (polylines[p.id]) {
+                  map.removeLayer(polylines[p.id]);
+                  delete polylines[p.id];
+              }
+              return;
           }
-    
+
           const latlng = [p.lat, p.lon];
-  
+
           if (!markers[p.id]) {
-            markers[p.id] = L.marker(latlng, {
-              icon: getIcon(p.icon)
-            })
-            .addTo(map)
-            .bindTooltip(p.name, {
-              permanent: true,
-              direction: 'top',
-              offset: [0, -50]
-            });
+              markers[p.id] = L.marker(latlng, { icon: getIcon(p.icon) })
+                  .addTo(map)
+                  .bindTooltip(p.name, { permanent: true, direction: 'top', offset: [0, -50] });
           } else {
-            markers[p.id].setLatLng(latlng);
-            markers[p.id].setIcon(getIcon(p.icon));
+              markers[p.id].setLatLng(latlng);
+              markers[p.id].setIcon(getIcon(p.icon));
           }
-    
+
           const pathCoords = p.path.map(pt => [pt.lat, pt.lon]);
+          const polylineColor = p.icon === 'purple' ? '#9791d8' : (p.icon || '#ccc');
+
           if (!polylines[p.id]) {
-            polylines[p.id] = L.polyline(pathCoords, {
-              color: p.icon === 'purple' ? '#9791d8' : p.icon,
-              weight: 5,
-              dashArray: '10, 10',
-              className: 'polyline-shadow'
-            }).addTo(map);
+              polylines[p.id] = L.polyline(pathCoords, {
+                  color: polylineColor,
+                  weight: 5,
+                  dashArray: '10, 10',
+                  className: 'polyline-shadow'
+              }).addTo(map);
           } else {
-            polylines[p.id].setLatLngs(pathCoords);
+              polylines[p.id].setLatLngs(pathCoords);
           }
-        });
-      })
-      .catch(e => console.error('Marker update error:', e));
+      });
+
+      Object.keys(markers).forEach(playerId => {
+          if (!activePlayerIds.has(playerId)) {
+              map.removeLayer(markers[playerId]);
+              delete markers[playerId];
+          }
+      });
+      Object.keys(polylines).forEach(playerId => {
+          if (!activePlayerIds.has(playerId)) {
+              map.removeLayer(polylines[playerId]);
+              delete polylines[playerId];
+          }
+      });
     }
     
     document.querySelectorAll('.disqualify').forEach(function(button) {
@@ -477,75 +483,78 @@
 
   const chart = echarts.init(document.getElementById('speed-chart'));
 
-  function updateSpeedChart() {
-    fetch(window.location.href, { headers:{'X-Requested-With':'XMLHttpRequest'} })
-      .then(r=>r.json())
-      .then(data=>{
-        const names = [], seriesData = [];
-        data.players.forEach(p=>{
-          if (!p.disqualified) {
-            names.push(p.name);
-            seriesData.push({ value: p.speed||0, itemStyle:{ color: p.icon } });
-          }
-        });
-        chart.setOption({
-          title:{ text:'Current Player Speeds (km/h)', left:'center' },
-          xAxis:{ type:'category', data:names },
-          yAxis:{ type:'value', min:0, name:'Speed (km/h)' },
-          series:[{ name:'Speed', type:'bar', data:seriesData }]
-        });
-        chart.resize();
-      })
-      .catch(e=>console.error('Speed chart update error:',e));
+  function updateSpeedChart(playersData) {
+    const names = [], seriesData = [];
+    playersData.forEach(p => {
+      if (!p.disqualified) {
+        names.push(p.name);
+        const color = p.icon === 'purple' ? '#9791d8' : (p.icon || '#ccc');
+        seriesData.push({ value: p.speed||0, itemStyle:{ color: color } });
+      }
+    });
+    chart.setOption({
+      title:{ text:'Current Player Speeds (km/h)', left:'center' },
+      xAxis:{ type:'category', data:names },
+      yAxis:{ type:'value', min:0, name:'Speed (km/h)' },
+      series:[{ name:'Speed', type:'bar', data:seriesData }]
+    }, { notMerge: false });
+    chart.resize();
   }
 
-  function renderPlayersTable(players) {
+  function renderPlayersTable(playersData) {
     const tbody = document.getElementById('players-body');
-    let html = '';
-    players.forEach(p => {
-      const trStyle = p.disqualified ? 'style="text-decoration:line-through"' : '';
-      const btnDisabled = p.disqualified ? 'disabled' : '';
-      html += `
-        <tr ${trStyle}>
-          </td>
-          <td>${p.name}</td>
-          <td>${p.score.toFixed(1)}</td>
-          <td>
-            <button
-              class="disqualify"
-              data-player-id="${p.id}"
-              ${btnDisabled}
-              style="pointer-events: none; opacity: 0.5;"
-            >Disqualify</button>
-          </td>
-        </tr>
-      `;
-    });
-    tbody.innerHTML = html;
-
-    document.querySelectorAll('.disqualify').forEach(btn => {
-      btn.addEventListener('click', function() {
-        if (!confirm('Are you sure you want to disqualify this player?')) {
-          return;
+    const existingRows = {};
+    tbody.querySelectorAll('tr').forEach(row => {
+        const playerId = row.dataset.playerId;
+        if (playerId) {
+            existingRows[playerId] = row;
         }
-        const playerId = this.dataset.playerId;
-        fetch(window.location.href, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-CSRFToken': '{{ csrf_token }}',
-            'X-Requested-With': 'XMLHttpRequest'
-          },
-          body: `player_id=${playerId}`
-        })
-        .then(r => r.json())
-        .then(data => {
-          if (data.status === 'success') {
-            updateAll();
-          }
-        })
-        .catch(err => console.error('Disqualify error:', err));
-      });
+    });
+
+    const processedPlayerIds = new Set();
+
+    playersData.forEach(p => {
+        const playerId = String(p.id);
+        processedPlayerIds.add(playerId);
+        let row = existingRows[playerId];
+
+        if (!row) {
+            row = document.createElement('tr');
+            row.dataset.playerId = playerId;
+            row.innerHTML = `
+              <td>${p.name}</td>
+              <td class="score">${p.score.toFixed(1)}</td>
+              <td>
+                <button class="disqualify" data-player-id="${p.id}" ${p.disqualified ? 'disabled' : ''}>
+                  Disqualify
+                </button>
+              </td>
+            `;
+            tbody.appendChild(row);
+            row.querySelector('.disqualify').addEventListener('click', handleDisqualifyClick);
+        } else {
+            const scoreCell = row.querySelector('.score');
+            if (scoreCell && scoreCell.textContent !== p.score.toFixed(1)) {
+                 scoreCell.textContent = p.score.toFixed(1);
+            }
+            const button = row.querySelector('.disqualify');
+            if (button) {
+                button.disabled = p.disqualified;
+            }
+            row.style.textDecoration = p.disqualified ? 'line-through' : 'none';
+        }
+
+        row.style.textDecoration = p.disqualified ? 'line-through' : 'none';
+        const button = row.querySelector('.disqualify');
+         if (button) {
+            button.disabled = p.disqualified;
+         }
+    });
+
+    Object.keys(existingRows).forEach(playerId => {
+        if (!processedPlayerIds.has(playerId)) {
+            existingRows[playerId].remove();
+        }
     });
   }
   
@@ -586,46 +595,95 @@
 
   function updateAll() {
     fetch(window.location.href, { headers:{ 'X-Requested-With':'XMLHttpRequest' } })
-      .then(r => r.json())
+      .then(r => {
+          if (!r.ok) { throw new Error(`HTTP error! status: ${r.status}`); }
+          return r.json();
+       })
       .then(data => {
-        if (data.game_state !== 'finished') {
-            updateMarkers();
-            updateSpeedChart();
-            renderPlayersTable(data.players);
-        }
+        updateMarkers(data.players);
+        updateSpeedChart(data.players);
+        renderPlayersTable(data.players);
 
-        if (data.game_state && data.remaining_seconds !== undefined) {
-          if (data.game_state === 'running' && data.remaining_seconds > 0) {
-            remainingSeconds = data.remaining_seconds;
-            if (!countdownInterval) {
-               startCountdown();
-            } else {
-               remainingTimeDisplay.textContent = formatTime(remainingSeconds);
-            }
-          } else if (data.game_state === 'not_started') {
-             remainingTimeDisplay.textContent = "Not Started Yet";
-             if (countdownInterval) clearInterval(countdownInterval);
-             countdownInterval = null;
-          } else { 
-             remainingTimeDisplay.textContent = "Game Over";
-             if (countdownInterval) clearInterval(countdownInterval);
-             countdownInterval = null;
+        const currentGameState = data.game_state;
+        const currentRemainingSeconds = data.remaining_seconds;
 
+        if (currentGameState !== 'finished') {
+           // No need to call these again, they are called above with data
+           // updateMarkers();
+           // updateSpeedChart();
+           // renderPlayersTable(data.players); // Already called
+        } else {
+             // If game finished, ensure updates stop
              if (updateInterval) {
                 console.log("Game finished. Stopping further updates.");
                 clearInterval(updateInterval);
-                updateInterval = null; 
+                updateInterval = null;
              }
-          }
+             // Ensure timer shows finished state
+             remainingTimeDisplay.textContent = "Game Over";
+             if (countdownInterval) clearInterval(countdownInterval);
+             countdownInterval = null;
+             return; // Stop further processing in this cycle if finished
+        }
+
+        if (currentGameState === 'running' && currentRemainingSeconds !== undefined) {
+            remainingSeconds = currentRemainingSeconds;
+            if (remainingSeconds > 0) {
+                if (!countdownInterval) {
+                    startCountdown();
+                }
+                 remainingTimeDisplay.textContent = formatTime(remainingSeconds);
+            } else {
+                 remainingTimeDisplay.textContent = "Game Over";
+                 if (countdownInterval) clearInterval(countdownInterval);
+                 countdownInterval = null;
+            }
+        } else if (currentGameState === 'not_started') {
+             remainingTimeDisplay.textContent = "Not Started Yet";
+             if (countdownInterval) clearInterval(countdownInterval);
+             countdownInterval = null;
         }
       })
-      .catch(e => console.error('Update error:', e));
+      .catch(e => {
+          console.error('Update error:', e);
+          // Maybe stop interval if there are persistent errors?
+          // clearInterval(updateInterval); updateInterval = null;
+      });
   }
 
   updateAll();
 
   updateInterval = setInterval(updateAll, 3000);
   
+  function handleDisqualifyClick() {
+      if (!confirm('Are you sure you want to disqualify this player?')) {
+          return;
+      }
+      const playerId = this.dataset.playerId;
+      fetch(window.location.href, {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'X-CSRFToken': '{{ csrf_token }}',
+              'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: `player_id=${playerId}`
+      })
+      .then(r => r.json())
+      .then(data => {
+          if (data.status === 'success') {
+              updateAll();
+          } else {
+              console.error('Disqualify failed:', data.message || 'Unknown error');
+              alert('Failed to disqualify player.');
+          }
+      })
+      .catch(err => {
+            console.error('Disqualify error:', err);
+            alert('An error occurred while trying to disqualify the player.');
+       });
+  }
+
   </script>
 </body>
 </html>
