@@ -6,8 +6,10 @@ from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.auth.models import User
 from django.contrib.gis.geos import Point
 from django.utils import timezone
+import pytz
 from .models import Game, UserScore, UserLocation, Waypoint, User, Question
 from .services.score_calculator import calculate_scores_for_game
+from datetime import timedelta
 
 import datetime
 import json
@@ -74,7 +76,7 @@ def main_menu(request, creator_id):
         new_game = Game.objects.create(
             game_creator_id=creator_id,
             game_name=f'game_{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}',
-            start_date_time=datetime.datetime.now(),
+            start_date_time=timezone.now(),
             number_of_players=2,
             time=3600
         )
@@ -96,17 +98,47 @@ def create_manage(request, creator_id, game_id):
         start_time_str = request.POST.get('start_time', '').strip()
         number_of_players_str = request.POST.get('number_of_players', '0').strip()
         time_str = request.POST.get('time', '').strip()
+        user_timezone_name = request.POST.get('user_timezone')
 
-        start_dt = None
+        naive_start_dt = None
+        aware_start_dt = None
+
         if start_date_str and start_time_str:
             try:
-                start_dt = datetime.datetime.strptime(
+                naive_start_dt = datetime.datetime.strptime(
                     f"{start_date_str} {start_time_str}",
                     "%Y/%m/%d %H:%M:%S"
                 )
-            except ValueError:
-                start_dt = None
+                user_tz = None
+                if user_timezone_name:
+                    try:
+                        user_tz = pytz.timezone(user_timezone_name)
+                    except pytz.UnknownTimeZoneError:
+                        print(f"Warning: Unknown timezone received: {user_timezone_name}. Using Django default.")
+                        user_tz = timezone.get_current_timezone()
+                else:
+                    print(f"Warning: User timezone info not found. Using Django default ({timezone.get_current_timezone_name()}).")
+                    user_tz = timezone.get_current_timezone()
 
+                aware_start_dt = user_tz.localize(naive_start_dt)
+            except ValueError:
+                aware_start_dt = None
+                print(f"Error: Invalid date/time format: {start_date_str} {start_time_str}")
+                messages.error(request, "Invalid date/time format provided.")
+
+        # Debug time information
+        # print(f"--- Debug Time Info Start ---")
+        # print(f"Received Date Str: {start_date_str}")
+        # print(f"Received Time Str: {start_time_str}")
+        # print(f"Received Timezone Name: {user_timezone_name}")
+        # if 'user_tz' in locals(): 
+        #      print(f"Pytz Timezone Object: {user_tz}")
+        # else:
+        #      print("Pytz Timezone Object: Not Created (check errors above)")
+        # print(f"Naive Datetime: {naive_start_dt}")
+        # print(f"Aware Datetime (Before Save): {aware_start_dt}")
+        # print(f"--- Debug Time Info End ---")
+        
         try:
             number_of_players = float(number_of_players_str)
         except ValueError:
@@ -118,8 +150,8 @@ def create_manage(request, creator_id, game_id):
 
         if game:
             game.game_name = game_name
-            if start_dt:
-                game.start_date_time = start_dt
+            if aware_start_dt:
+                game.start_date_time = aware_start_dt
             game.number_of_players = number_of_players
             game.time = time_float
             game.save()
@@ -127,7 +159,7 @@ def create_manage(request, creator_id, game_id):
             creator = get_object_or_404(User, id=creator_id)
             game = Game.objects.create(
                 game_name=game_name,
-                start_date_time=start_dt,
+                start_date_time=aware_start_dt if aware_start_dt else timezone.now(),
                 number_of_players=number_of_players,
                 time=time_float,
                 game_creator=creator,
@@ -196,11 +228,30 @@ def ordinal(n):
 
 def monitor(request, pk, creator_id):
     game = get_object_or_404(Game, pk=pk, game_creator_id=creator_id)
-
     now = timezone.now()
-    remaining_td = game.start_date_time - now
-    remaining_seconds = max(int(remaining_td.total_seconds()), 0)
-    
+
+    game_state = "not_started"
+    remaining_seconds_until_end = 0
+    end_time = None
+
+    try:
+        duration_seconds = int(game.time)
+        end_time = game.start_date_time + timedelta(seconds=duration_seconds)
+    except (TypeError, ValueError):
+        
+        print(f"Warning: Invalid game duration found for game {game.game_id}: {game.time}")
+        end_time = None 
+
+    if game.start_date_time > now:
+        game_state = "not_started"
+    elif end_time and now < end_time:
+        game_state = "running"
+        remaining_seconds_until_end = max(0, int((end_time - now).total_seconds()))
+    elif end_time and now >= end_time:
+        game_state = "finished"
+    else:
+        game_state = "unknown" 
+
     if request.method == "POST" and request.headers.get('x-requested-with') == 'XMLHttpRequest':
         player_id = request.POST.get('player_id')
         user = get_object_or_404(User, user_id=player_id)
@@ -269,22 +320,36 @@ def monitor(request, pk, creator_id):
             'marker_color': marker_color,
         })
 
+    # --- AJAX Response için Güncelleme ---
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        # AJAX istekleri için de durumu ve kalan saniyeyi gönderelim
+        now_ajax = timezone.now() # Tekrar alalım ki en güncel olsun
+        if game_state == "running": # Durum değişmiş olabilir
+             remaining_seconds_ajax = max(0, int((end_time - now_ajax).total_seconds())) if end_time else 0
+        else:
+             remaining_seconds_ajax = 0
+
         return JsonResponse({
             'players': sorted_players,
             'waypoints': waypoints,
-            'remaining_seconds': remaining_seconds,
+            'game_state': game_state, # AJAX cevabına ekle
+            'remaining_seconds': remaining_seconds_ajax, # AJAX cevabına ekle
+            # Eski remaining_seconds kaldırıldı, yerine yukarıdakiler geldi
         })
+    # --- AJAX Response için Güncelleme Bitiş ---
 
-    return render(request, 'game/monitor.html', {
+    # --- Normal Render Context Güncelleme ---
+    context = {
         'players': sorted_players,
         'game': game,
         'creator_id': creator_id,
         'waypoints': waypoints,
-        'now': now,
-        'remaining_td': remaining_td,
-        'remaining_seconds': remaining_seconds,
-    })
+        # 'now', 'remaining_td' artık doğrudan kullanılmayacak
+        'game_state': game_state,
+        'remaining_seconds_until_end': remaining_seconds_until_end, # Sadece çalışan oyunlar için anlamlı
+    }
+    return render(request, 'game/monitor.html', context)
+    # --- Normal Render Context Güncelleme Bitiş ---
     
 def results(request, game_id, creator_id):
     game = get_object_or_404(Game, pk=game_id, game_creator_id=creator_id)
@@ -328,11 +393,12 @@ def results(request, game_id, creator_id):
             'speeds': speeds,
             'icon':   p['icon']
         })
+        
     return render(request, 'game/results.html', {
-        'players':    sorted_players,
-        'game':       game,
-        'date':       game.start_date_time.strftime('%Y-%m-%d %H:%M'),
-        'winner':     sorted_players[0] if sorted_players else None,
+        'players': sorted_players,
+        'game': game,
+        'date':  game.start_date_time.strftime('%Y-%m-%d %H:%M'),
+        'winner':  sorted_players[0] if sorted_players else None,
         'speed_data': json.dumps(speed_data),
     })
 

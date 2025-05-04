@@ -1,4 +1,5 @@
 {% load static %}
+{% load tz %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -182,11 +183,13 @@
         </thead>
         <tbody>
           {% for game in games %}
-          <tr>
+          <tr data-utc-datetime="{{ game.start_date_time.isoformat }}">
             <td>{{ game.game_name }}</td>
             <td>{{ game.invite_id }}</td>
-            <td>{{ game.start_date_time|date:"d/m/Y" }}</td>
-            <td>{{ game.start_date_time|date:"H:i" }}</td>
+       
+            <td class="game-date">{{ game.start_date_time|date:"d/m/Y" }}</td> {# Fallback or loading text #}
+           
+            <td class="game-time">{{ game.start_date_time|date:"H:i" }}</td>   {# Fallback or loading text #}
             <td>
                 <a href="{% url 'monitor' creator_id=creator_id pk=game.game_id %}" class="btn">Monitor</a>
               <a href="{% url 'results' creator_id=creator_id game_id=game.game_id %}" class="btn">Results</a>
@@ -212,5 +215,54 @@
   <footer id="footer">
     <p>&copy; 2025 GeoDeer | All rights reserved</p>
   </footer>
+
+  {# Add JavaScript for client-side timezone conversion #}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Select all table rows with the data attribute
+      const gameRows = document.querySelectorAll('tr[data-utc-datetime]');
+      let userTimezone = 'UTC'; // Default timezone
+      try {
+         userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      } catch (e) {
+          console.error("Could not detect user timezone, defaulting to UTC.", e);
+      }
+
+      gameRows.forEach(row => {
+        const utcDateTimeString = row.dataset.utcDatetime;
+        const dateCell = row.querySelector('.game-date');
+        const timeCell = row.querySelector('.game-time');
+
+        if (utcDateTimeString && utcDateTimeString !== 'None' && dateCell && timeCell) {
+          try {
+            const dateObj = new Date(utcDateTimeString);
+
+            // Format Date (DD/MM/YYYY)
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            dateCell.textContent = `${day}/${month}/${year}`;
+
+            // Format Time (HH:MM)
+            const hours = String(dateObj.getHours()).padStart(2, '0');
+            const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+            timeCell.textContent = `${hours}:${minutes}`;
+
+          } catch (e) {
+            console.error("Error processing date/time for row:", utcDateTimeString, e);
+            // Keep the initial Django formatted text as fallback
+            dateCell.textContent = "Error";
+            timeCell.textContent = "Error";
+          }
+        } else if (dateCell && timeCell) {
+            // Handle cases where datetime might be None or cells not found correctly
+            // console.log("UTC datetime string missing or invalid for a row.");
+             dateCell.textContent = "-"; // Indicate no date/time set
+             timeCell.textContent = "-";
+        }
+      });
+    });
+  </script>
+
 </body>
 </html>

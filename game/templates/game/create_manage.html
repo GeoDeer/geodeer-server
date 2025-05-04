@@ -1,4 +1,5 @@
 {% load static %}
+{% load tz %}
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -364,8 +365,6 @@
     right: 440px;
     z-index: 9999 !important;
 
-
-
 </style>
 </head>
 <body>
@@ -444,14 +443,16 @@
         {% csrf_token %}
         <label for="gameName">Game Name:</label>
         <input type="text" name="game_name" id="gameName" value="{{ game.game_name }}" />
-        <div style="display:flex;gap:10px;">
+        <div style="display:flex;gap:10px;" data-utc-datetime="{{ game.start_date_time.isoformat }}">
           <div>
             <label for="startDate">Start Date:</label>
-            <input type="text" name="start_date" id="startDate" value="{{ game.start_date_time|date:'Y/m/d' }}" />
+            {# Remove |localtime filter, value will be set by JS #}
+            <input type="text" name="start_date" id="startDate" value="" placeholder="YYYY/MM/DD" />
           </div>
           <div>
             <label for="startTimeOnly">Start Time:</label>
-            <input type="text" name="start_time" id="startTimeOnly" value="{{ game.start_date_time|date:'H:i:s' }}" />
+            {# Remove |localtime filter, value will be set by JS #}
+            <input type="text" name="start_time" id="startTimeOnly" value="" placeholder="HH:MM:SS" />
           </div>
         </div>
         <label for="numPlayers">Number of Players:</label>
@@ -459,6 +460,8 @@
         <label for="time">Time:</label>
         <input type="text" name="time" id="time" value="{{ game.time|floatformat:0 }}" />
         <input type="hidden" name="waypoints_data" id="waypointsData" />
+        {# Add hidden input for the user's timezone #}
+        <input type="hidden" name="user_timezone" id="userTimezone" />
       </form>
     </div>
   </div>
@@ -470,6 +473,84 @@
   let waypointCount = {{ waypoint_count }} > 0 ? {{ waypoint_count }} : 1;
   let hasInitialLast = {{ last_point_count }} > 0;
   {% comment %} let lastPointCount = {{ last_point_count }}; {% endcomment %}
+
+  // --- START: Timezone Handling Script ---
+  document.addEventListener('DOMContentLoaded', function() {
+    const dateTimeDiv = document.querySelector('[data-utc-datetime]');
+    const startDateInput = document.getElementById('startDate');
+    const startTimeInput = document.getElementById('startTimeOnly');
+    const gameInfoForm = document.getElementById('gameInfoForm');
+    const userTimezoneInput = document.getElementById('userTimezone');
+
+    if (dateTimeDiv && startDateInput && startTimeInput && gameInfoForm && userTimezoneInput) {
+      const utcDateTimeString = dateTimeDiv.dataset.utcDatetime;
+
+      if (utcDateTimeString && utcDateTimeString !== 'None') { // Check if game.start_date_time was set
+        try {
+          // 1. Get user's timezone name
+          const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          userTimezoneInput.value = userTimezone; // Set initial value for hidden input
+
+          // 2. Create a Date object from the UTC string
+          // ISO format like "2025-05-04T04:50:26.535852+00:00" is directly parsable
+          const dateObj = new Date(utcDateTimeString);
+
+          // 3. Format the date and time in the user's local timezone
+          // We need YYYY/MM/DD and HH:MM:SS formats
+
+          // Formatting Date (YYYY/MM/DD)
+          const year = dateObj.getFullYear();
+          const month = String(dateObj.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+          const day = String(dateObj.getDate()).padStart(2, '0');
+          startDateInput.value = `${year}/${month}/${day}`;
+
+          // Formatting Time (HH:MM:SS)
+          const hours = String(dateObj.getHours()).padStart(2, '0');
+          const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+          const seconds = String(dateObj.getSeconds()).padStart(2, '0');
+          startTimeInput.value = `${hours}:${minutes}:${seconds}`;
+
+        } catch (e) {
+          console.error("Error processing date/time:", e);
+          // Optionally set default values or show an error
+          startDateInput.placeholder = "Error";
+          startTimeInput.placeholder = "Error";
+        }
+      } else {
+         console.log("No initial UTC datetime found for game.");
+         // Set placeholder or default if no time is set yet
+         const now = new Date();
+         const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+         userTimezoneInput.value = userTimezone;
+
+         const year = now.getFullYear();
+         const month = String(now.getMonth() + 1).padStart(2, '0');
+         const day = String(now.getDate()).padStart(2, '0');
+         startDateInput.value = `${year}/${month}/${day}`;
+
+         const hours = String(now.getHours()).padStart(2, '0');
+         const minutes = String(now.getMinutes()).padStart(2, '0');
+         const seconds = String(now.getSeconds()).padStart(2, '0');
+         startTimeInput.value = `${hours}:${minutes}:${seconds}`;
+      }
+
+      // 4. Ensure the timezone is sent when the form is submitted
+      gameInfoForm.addEventListener('submit', function() {
+        // Re-detect timezone just in case? Usually not necessary.
+        try {
+            const currentTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            userTimezoneInput.value = currentTz;
+        } catch (e) {
+            console.error("Could not detect timezone on submit.");
+            // Keep the value set on page load or set a default?
+        }
+        // The hidden input already has the value, form submission will include it.
+      });
+    } else {
+        console.error("Required elements for timezone handling not found.");
+    }
+  });
+  // --- END: Timezone Handling Script ---
 
   function ordinal(n) {
     let s;

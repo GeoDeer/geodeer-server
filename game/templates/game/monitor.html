@@ -1,4 +1,5 @@
 {% load static %}
+{% load tz %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -218,11 +219,20 @@
   <!-- Subheader Section -->
   <div id="subheader">
     <div>{{ game }}</div>
-    {% comment %} for demo  {% endcomment %}
-    {% comment %} <div>Remaining Time: {{ game.start_date_time|timeuntil }}</div> {% endcomment %} 
-    <div>Remaining Time: {{ game.start_date_time|timeuntil }}</div>
-    {% comment %} for demo {% endcomment %}
-    {% comment %} <div>[demo]</div> {% endcomment %} 
+    <div>
+      <span>Remaining Time: </span>
+      <span id="remainingTimeDisplay">
+        {% if game_state == "not_started" %}
+          Not Started Yet
+        {% elif game_state == "running" %}
+          --:--:--
+        {% elif game_state == "finished" %}
+          Game Over
+        {% else %}
+          Unknown
+        {% endif %}
+      </span>
+    </div>
   </div>
 
   <!-- Main Section -->
@@ -534,21 +544,87 @@
     });
   }
   
+  const remainingTimeDisplay = document.getElementById('remainingTimeDisplay');
+  let remainingSeconds = {{ remaining_seconds_until_end }};
+  const gameState = "{{ game_state }}";
+  let countdownInterval = null;
+
+  function formatTime(seconds) {
+    if (seconds < 0) seconds = 0;
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+
+  function startCountdown() {
+    if (remainingTimeDisplay && gameState === "running" && remainingSeconds > 0) {
+      remainingTimeDisplay.textContent = formatTime(remainingSeconds);
+      countdownInterval = setInterval(() => {
+        remainingSeconds--;
+        if (remainingSeconds >= 0) {
+          remainingTimeDisplay.textContent = formatTime(remainingSeconds);
+        } else {
+          remainingTimeDisplay.textContent = "Oyun Bitti";
+          clearInterval(countdownInterval);
+        }
+      }, 1000);
+    } else if (remainingTimeDisplay && gameState === "running" && remainingSeconds <= 0) {
+       remainingTimeDisplay.textContent = "Oyun Bitti";
+    }
+
+  }
+
+  document.addEventListener('DOMContentLoaded', startCountdown);
+
+  // Store the interval ID so we can clear it later
+  let updateInterval = null;
+
   function updateAll() {
     fetch(window.location.href, { headers:{ 'X-Requested-With':'XMLHttpRequest' } })
       .then(r => r.json())
       .then(data => {
-        updateMarkers();
-  
-        updateSpeedChart();
-  
-        renderPlayersTable(data.players);
+        // Update map elements only if the game is not finished
+        if (data.game_state !== 'finished') {
+            updateMarkers();
+            updateSpeedChart();
+            renderPlayersTable(data.players);
+        }
+
+        // Always update game state and remaining time display logic
+        if (data.game_state && data.remaining_seconds !== undefined) {
+          if (data.game_state === 'running' && data.remaining_seconds > 0) {
+            remainingSeconds = data.remaining_seconds;
+            if (!countdownInterval) {
+               startCountdown();
+            } else {
+               remainingTimeDisplay.textContent = formatTime(remainingSeconds);
+            }
+          } else if (data.game_state === 'not_started') {
+             remainingTimeDisplay.textContent = "Not Started Yet";
+             if (countdownInterval) clearInterval(countdownInterval);
+             countdownInterval = null;
+          } else { // finished or unknown
+             remainingTimeDisplay.textContent = "Game Over";
+             if (countdownInterval) clearInterval(countdownInterval);
+             countdownInterval = null;
+
+             // Stop further AJAX updates if the game is finished
+             if (updateInterval) {
+                console.log("Game finished. Stopping further updates.");
+                clearInterval(updateInterval);
+                updateInterval = null; // Clear the variable too
+             }
+          }
+        }
       })
       .catch(e => console.error('Update error:', e));
   }
 
+  // Initial call to load data
   updateAll();
-  setInterval(updateAll, 3000);
+  // Start the interval and store its ID
+  updateInterval = setInterval(updateAll, 3000);
   
   </script>
 </body>
