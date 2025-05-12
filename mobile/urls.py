@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .views import api_login , api_register
 
 urlpatterns = [
     path('users/', views.get_user, name='get_user'),
@@ -29,4 +30,7 @@ urlpatterns = [
     path('questions/', views.get_question, name='get_question'),
     path('questions/create/', views.create_question, name='create_question'),
     path('questions/<int:waypoint_id>/', views.question_detail, name='question_detail'),
+
+    path('api/login/',    api_login,    name='api_login'),
+    path('api/register/', api_register, name='api_register'),
 ]
