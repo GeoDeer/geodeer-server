@@ -6,6 +6,8 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.hashers import check_password
+from game.models import User   # senin özel modelin
 
 # Diğer importlarınız (serializer, modeller vb.)
 from game.models import *
@@ -23,33 +25,28 @@ from .serializer import (
 @permission_classes([AllowAny])
 @authentication_classes([])
 def api_login(request):
-    """
-    POST ile gelen {username, password} verilerini authenticate eder.
-    Başarılıysa kullanıcı bilgilerini, başarısızsa hata mesajını döner.
-    """
 
-    print(">>> /api/login/ body:", request.body)
+    print(">>> /api/login/ body:", request.body) 
     print(">>> /api/login/ data:", request.data)
-
+    
     username = request.data.get('username')
     password = request.data.get('password')
-    user = authenticate(username=username, password=password)
 
-    print(">>> authenticate() result:", user)   # <— None mı dönüyor?
-    
-    if not user:
-        return Response(
-            {'detail': 'Kullanıcı adı veya şifre hatalı.'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    return Response(
-        {
-            'user_id': user.id,
-            'username': user.username,
-            'email': user.email,
-        },
-        status=status.HTTP_200_OK
-    )
+    try:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        return Response({'detail': 'Kullanıcı adı veya şifre hatalı.'},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+    if not check_password(password, user.password):
+        return Response({'detail': 'Kullanıcı adı veya şifre hatalı.'},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+    return Response({
+        'user_id': user.user_id,   # özel modelde id alanının adı böyleyse
+        'username': user.username,
+        'email':    user.email,
+    }, status=status.HTTP_200_OK)
 
 @csrf_exempt
 @api_view(['POST'])
