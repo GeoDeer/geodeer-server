@@ -1,62 +1,97 @@
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework import status
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import User
-from rest_framework import status
-from game.models import *
-from .serializer import UserSerializer, GameSerializer, WaypointSerializer, UserLocationSerializer, UserScoreSerializer, QuestionSerializer
+from django.views.decorators.csrf import csrf_exempt
 
+# Diğer importlarınız (serializer, modeller vb.)
+from game.models import *
+from .serializer import (
+    UserSerializer,
+    GameSerializer,
+    WaypointSerializer,
+    UserLocationSerializer,
+    UserScoreSerializer,
+    QuestionSerializer,
+)
+
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
-@authentication_classes([])  
+@authentication_classes([])
 def api_login(request):
-    user = authenticate(
-        username=request.data.get('username'),
-        password=request.data.get('password'),
-    )
+    """
+    POST ile gelen {username, password} verilerini authenticate eder.
+    Başarılıysa kullanıcı bilgilerini, başarısızsa hata mesajını döner.
+    """
+    username = request.data.get('username')
+    password = request.data.get('password')
+    user = authenticate(username=username, password=password)
     if not user:
-        return Response({'detail': 'Kullanıcı adı veya şifre hatalı.'},
-                        status=status.HTTP_400_BAD_REQUEST)
-    return Response({
-        'user_id': user.id,
-        'username': user.username,
-        'email': user.email,
-    }, status=status.HTTP_200_OK)
+        return Response(
+            {'detail': 'Kullanıcı adı veya şifre hatalı.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    return Response(
+        {
+            'user_id': user.id,
+            'username': user.username,
+            'email': user.email,
+        },
+        status=status.HTTP_200_OK
+    )
 
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
 @authentication_classes([])
 def api_register(request):
+    """
+    POST ile gelen {username, email, password, password2} verilerini alır,
+    doğrulama yapar, yeni kullanıcı oluşturur.
+    """
     username = request.data.get('username')
-    email    = request.data.get('email')
-    pw1      = request.data.get('password')
-    pw2      = request.data.get('password2')
+    email = request.data.get('email')
+    pw1 = request.data.get('password')
+    pw2 = request.data.get('password2')
 
     if not all([username, email, pw1, pw2]):
-        return Response({'detail': 'Tüm alanlar zorunlu.'},
-                        status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {'detail': 'Tüm alanlar zorunlu.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
     if pw1 != pw2:
-        return Response({'detail': 'Şifreler uyuşmuyor.'},
-                        status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {'detail': 'Şifreler uyuşmuyor.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
     if User.objects.filter(username=username).exists():
-        return Response({'detail': 'Bu kullanıcı adı zaten kayıtlı.'},
-                        status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {'detail': 'Bu kullanıcı adı zaten kayıtlı.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
     if User.objects.filter(email=email).exists():
-        return Response({'detail': 'Bu e-posta zaten kayıtlı.'},
-                        status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {'detail': 'Bu e-posta zaten kayıtlı.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
     user = User.objects.create(
         username=username,
         email=email,
         password=make_password(pw1)
     )
-    return Response({
-        'user_id': user.id,
-        'username': user.username,
-        'email': user.email,
-    }, status=status.HTTP_201_CREATED)
+    return Response(
+        {
+            'user_id': user.id,
+            'username': user.username,
+            'email': user.email,
+        },
+        status=status.HTTP_201_CREATED
+    )
 
 @api_view(['GET'])
 def get_user(request):
