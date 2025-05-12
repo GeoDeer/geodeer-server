@@ -27,9 +27,16 @@ def api_login(request):
     POST ile gelen {username, password} verilerini authenticate eder.
     Başarılıysa kullanıcı bilgilerini, başarısızsa hata mesajını döner.
     """
+
+    print(">>> /api/login/ body:", request.body)
+    print(">>> /api/login/ data:", request.data)
+
     username = request.data.get('username')
     password = request.data.get('password')
     user = authenticate(username=username, password=password)
+
+    print(">>> authenticate() result:", user)   # <— None mı dönüyor?
+    
     if not user:
         return Response(
             {'detail': 'Kullanıcı adı veya şifre hatalı.'},
