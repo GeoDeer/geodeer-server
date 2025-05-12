@@ -31,6 +31,6 @@ urlpatterns = [
     path('questions/create/', views.create_question, name='create_question'),
     path('questions/<int:waypoint_id>/', views.question_detail, name='question_detail'),
 
-    path('api/login/',    api_login,    name='api_login'),
-    path('api/register/', api_register, name='api_register'),
+    path('login/',    api_login,    name='api_login'),
+    path('register/', api_register, name='api_register'),
 ]
