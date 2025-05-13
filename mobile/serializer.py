@@ -33,7 +33,7 @@ class WaypointSerializer(serializers.ModelSerializer):
 
 class UserLocationSerializer(serializers.ModelSerializer):
     class Meta:
-        model = UserLocation
+        model  = UserLocation
         fields = [
             'id', 'user', 'game',
             'lat', 'lon', 'location_geom',
@@ -42,6 +42,16 @@ class UserLocationSerializer(serializers.ModelSerializer):
         read_only_fields = [
             'time_stamp', 'time_diff', 'distance', 'speed',
         ]
+
+    # ↙ GeoJSON sözlüğünü Point’e çevirip kaydediyoruz
+    def create(self, validated_data):
+        # location_geom dict olarak geldiyse Point objesine çevir
+        loc = validated_data.get('location_geom')
+        if isinstance(loc, dict):
+            lng, lat = loc['coordinates']
+            validated_data['location_geom'] = Point(lng, lat)
+
+        return UserLocation.objects.create(**validated_data)
 
 # class UserDistanceSerializer(serializers.ModelSerializer):
 #     class Meta:
