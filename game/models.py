@@ -123,17 +123,23 @@ class UserLocation(models.Model):
 
     def save(self, *args, **kwargs):
         now = timezone.now()
-        try:
-            duration_seconds = int(self.game.time)
-            end_time = self.game.start_date_time + timedelta(seconds=duration_seconds)
 
-            if now >= end_time:
-                print(f"Info: Game {self.game.game_id} finished. Skipping UserLocation save for user {self.user.user_id}.")
-                return
-
-        except (TypeError, ValueError, AttributeError):
-            print(f"Warning: Could not determine game end time for UserLocation save (Game: {self.game_id if hasattr(self, 'game_id') else 'N/A'}). Allowing save.")
-            pass
+        # ───────────── “Oyun bitti” engelini tamamen pasifleştirdik ────────
+        # try:
+        #     duration_seconds = int(self.game.time)
+        #     end_time = self.game.start_date_time + timedelta(seconds=duration_seconds)
+        #
+        #     if now >= end_time:
+        #         print(f"Info: Game {self.game.game_id} finished. "
+        #               f"Skipping UserLocation save for user {self.user.user_id}.")
+        #         return
+        #
+        # except (TypeError, ValueError, AttributeError):
+        #     print(f"Warning: Could not determine game end time for UserLocation save "
+        #           f"(Game: {self.game_id if hasattr(self, 'game_id') else 'N/A'}). "
+        #           "Allowing save.")
+        #     pass
+        # ─────────────────────────────────────────────────────────────────────
 
         if not self.location_geom and self.lat is not None and self.lon is not None:
             self.location_geom = Point(self.lon, self.lat, srid=4326)
@@ -149,7 +155,7 @@ class UserLocation(models.Model):
             if previous:
                 delta = self.time_stamp - previous.time_stamp
                 self.time_diff = delta.total_seconds() / 3600.0
-                
+
                 prev_geom = previous.location_geom.clone()
                 prev_geom.srid = 4326
                 prev_geom.transform(3857)
@@ -162,7 +168,6 @@ class UserLocation(models.Model):
 
                 if self.time_diff and self.time_diff > 0:
                     self.speed = (self.distance / 1000) / self.time_diff
-                    
             else:
                 transaction.on_commit(lambda: UserScore.objects.get_or_create(
                     user=self.user,
@@ -174,7 +179,7 @@ class UserLocation(models.Model):
                         'total_score': 0.0,
                     }
                 ))
-        
+
         super().save(*args, **kwargs)
 
     def __str__(self):
