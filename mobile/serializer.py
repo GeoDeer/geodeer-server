@@ -56,7 +56,7 @@ class UserScoreSerializer(serializers.ModelSerializer):
 
     def create(self, validated):
         validated['user'] = self.context['request'].user
-        return super().create(validated)
+        return UserLocation.objects.create(**validated_data)
 
 class QuestionSerializer(serializers.ModelSerializer):
     class Meta:
