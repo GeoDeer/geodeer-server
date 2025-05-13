@@ -352,29 +352,23 @@ def question_detail(request, waypoint_id):
         question.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     
+@csrf_exempt                              # 1) CSRF filtresini devre dışı
+@authentication_classes([])               # 2) Session / Token auth yok
+@permission_classes([AllowAny])           # 3) Her isteğe izin ver
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])           # → login zorunlu
-@permission_classes([AllowAny])  
-@csrf_exempt  
 def join_game(request):
-    """
-    Body  → {"game": <id>}
-    Sunucu → aynı (user, game) çifti yoksa UserScore yaratır.
-    """
     game_id = request.data.get('game')
-    if not game_id:
-        return Response({'detail': 'game alanı zorunlu'}, status=400)
+    user_id = request.data.get('user')
+    if not game_id or not user_id:
+        return Response({'detail': 'game ve user alanı zorunlu'}, status=400)
 
     try:
         game = Game.objects.get(game_id=game_id)
-    except Game.DoesNotExist:
-        return Response({'detail': 'Game bulunamadı'}, status=404)
+        user = User.objects.get(user_id=user_id)
+    except (Game.DoesNotExist, User.DoesNotExist):
+        return Response({'detail': 'Game veya User bulunamadı'}, status=404)
 
     score, _ = UserScore.objects.get_or_create(
-        user=request.user,
-        game=game,
-        defaults={'total_score': 0}
+        user=user, game=game, defaults={'total_score': 0}
     )
-
-    ser = UserScoreSerializer(score, context={'request': request})
-    return Response(ser.data, status=status.HTTP_201_CREATED)
+    return Response(UserScoreSerializer(score).data, status=201)
