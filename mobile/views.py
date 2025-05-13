@@ -354,6 +354,8 @@ def question_detail(request, waypoint_id):
     
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])           # → login zorunlu
+@permission_classes([AllowAny])  
+@csrf_exempt  
 def join_game(request):
     """
     Body  → {"game": <id>}
