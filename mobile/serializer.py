@@ -1,6 +1,7 @@
 from django.contrib.auth.hashers import make_password
 from rest_framework import serializers
 from game.models import User, Game, Waypoint, UserLocation, UserScore, Question
+from django.contrib.gis.geos import Point  
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
