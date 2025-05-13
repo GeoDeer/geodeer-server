@@ -1,5 +1,5 @@
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import authenticate
@@ -351,3 +351,28 @@ def question_detail(request, waypoint_id):
     elif request.method == 'DELETE':
         question.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])           # → login zorunlu
+def join_game(request):
+    """
+    Body  → {"game": <id>}
+    Sunucu → aynı (user, game) çifti yoksa UserScore yaratır.
+    """
+    game_id = request.data.get('game')
+    if not game_id:
+        return Response({'detail': 'game alanı zorunlu'}, status=400)
+
+    try:
+        game = Game.objects.get(game_id=game_id)
+    except Game.DoesNotExist:
+        return Response({'detail': 'Game bulunamadı'}, status=404)
+
+    score, _ = UserScore.objects.get_or_create(
+        user=request.user,
+        game=game,
+        defaults={'total_score': 0}
+    )
+
+    ser = UserScoreSerializer(score, context={'request': request})
+    return Response(ser.data, status=status.HTTP_201_CREATED)

@@ -50,8 +50,13 @@ class UserLocationSerializer(serializers.ModelSerializer):
 
 class UserScoreSerializer(serializers.ModelSerializer):
     class Meta:
-        model = UserScore
+        model  = UserScore
         fields = '__all__'
+        read_only_fields = ('user',)             # client user id gönderemez
+
+    def create(self, validated):
+        validated['user'] = self.context['request'].user
+        return super().create(validated)
 
 class QuestionSerializer(serializers.ModelSerializer):
     class Meta:

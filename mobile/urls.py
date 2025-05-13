@@ -33,4 +33,6 @@ urlpatterns = [
 
     path('login/',    api_login,    name='api_login'),
     path('register/', api_register, name='api_register'),
+
+    path('join/', views.join_game, name='join_game'),
 ]
