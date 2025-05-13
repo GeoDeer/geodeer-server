@@ -217,12 +217,14 @@ def get_user_location(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def create_user_location(request):
+    print("→ create_user_location payload:", request.data)  
     ser = UserLocationSerializer(data=request.data)
     if not ser.is_valid():
+        print("!! serializer errors:", ser.errors)    
         return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
 
     instance = ser.save()                          # → DB’ye yazar
-    logger.debug("▶ after save, instance.id = %s", instance.id)
+    print("→ instance.id after save:", instance.id)  
     out_ser  = UserLocationSerializer(instance)    # → id artık kesin dolu
     return Response(out_ser.data, status=status.HTTP_201_CREATED)
 
