@@ -8,6 +8,9 @@ from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.hashers import check_password
 from game.models import User   # senin özel modelin
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Diğer importlarınız (serializer, modeller vb.)
 from game.models import *
@@ -219,6 +222,7 @@ def create_user_location(request):
         return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
 
     instance = ser.save()                          # → DB’ye yazar
+    logger.debug("▶ after save, instance.id = %s", instance.id)
     out_ser  = UserLocationSerializer(instance)    # → id artık kesin dolu
     return Response(out_ser.data, status=status.HTTP_201_CREATED)
 
