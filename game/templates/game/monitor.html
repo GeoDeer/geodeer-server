@@ -248,22 +248,9 @@
           </tr>
         </thead>
         <tbody id="players-body">
-          {% for player in players %}
-          <tr {% if player.disqualified %} style="text-decoration: line-through;" {% endif %}>
-            <td>{{ player.name }}</td>
-            <td id="score-{{ player.id }}">{{ player.score }}</td>
-            <td>
-              <button
-              class="disqualify"
-              data-player-id="{{ player.id }}"
-              {% if player.disqualified %} disabled {% endif %}
-              style="pointer-events: none; opacity: 0.5;"
-            >
-              Disqualify
-            </button>
-          </tr>
-          {% endfor %}
+        <!-- Players will be populated dynamically via JavaScript -->
         </tbody>
+
       </table>
     </div>
 
