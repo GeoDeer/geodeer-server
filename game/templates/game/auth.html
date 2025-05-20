@@ -4,7 +4,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Authentication</title>
+  <title>GeoDeer - Authentication</title>
+  <!-- Favicon -->
+  <link rel="icon" 
+        href="{% static 'images/favicon.png' %}" 
+        type="image/png">
+
   <style>
     * {
       margin: 0;
@@ -37,6 +42,37 @@
       justify-content: space-between;
       align-items: center;
       padding: 10px 20px;
+    }
+
+    /* Logo styling */
+    .logo {
+      display: flex;
+      align-items: baseline;
+    }
+    .logo-title {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    .logo-subtitle {
+      font-size: 1rem;
+      font-weight: normal;
+      opacity: 0.8;
+    }
+
+    .github-link {
+      display: flex;
+      align-items: center;
+      margin-left: auto;   
+      text-decoration: none;
+    }
+    .github-icon {
+      height: 100%;       
+      width: auto;
+      max-height: 32px;   
+    }
+    .github-link:hover .github-icon {
+      opacity: 0.8;
     }
 
     #main-content {
@@ -172,9 +208,16 @@
   </style>
 </head>
 <body>
+ 
   <div id="header">
-    <div>GeoDeer</div>
-    <div>A Map-Based Treasure Hunt Game</div>
+    <div class="logo">
+      <div class="logo-title">GeoDeer</div>
+      <div class="logo-subtitle">A Map-Based Treasure Hunt Game</div>
+    </div>
+
+    <a href="https://github.com/GeoDeer/geodeer-server/" target="_blank" class="github-link">
+      <img src="{% static 'images/github-icon.png' %}" alt="GitHub" class="github-icon">
+    </a>
   </div>
 
   <main id="main-content">

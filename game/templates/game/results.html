@@ -5,6 +5,9 @@
 <head>
   <meta charset="UTF-8" />
   <title>GeoDeer - Results</title>
+  <link rel="icon" 
+  href="{% static 'images/favicon.png' %}" 
+  type="image/png">
   <style>
     :root {
       --dark-green: #296B45;
@@ -29,14 +32,31 @@
     }
 
     #header {
-      background: var(--dark-green);
+      background-color: var(--dark-green);
       color: var(--white);
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 10px 20px;
-      flex: 0 0 auto;
     }
+
+    /* Logo styling */
+    .logo {
+      display: flex;
+      align-items: baseline;
+    }
+    .logo-title {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    .logo-subtitle {
+      font-size: 1rem;
+      font-weight: normal;
+      opacity: 0.8;
+    }
+
+    
 
     #subheader {
       background: var(--soft-blue);
@@ -226,8 +246,10 @@
 <body>
 
   <div id="header">
-    <div>GeoDeer</div>
-    <div>A Map-Based Treasure Hunt Game</div>
+    <div class="logo">
+      <div class="logo-title">GeoDeer</div>
+      <div class="logo-subtitle">A Map-Based Treasure Hunt Game</div>
+    </div>
   </div>
 
   <div id="subheader" data-utc-datetime="{{ game.start_date_time.isoformat }}">

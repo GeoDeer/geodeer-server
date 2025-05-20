@@ -165,7 +165,8 @@ def main_menu(request, creator_id):
 @owner_required
 def create_manage(request, creator_id, game_id):
     game = Game.objects.filter(game_id=game_id, game_creator_id=creator_id).first()
-
+    user  = User.objects.get(pk=creator_id)
+    
     if request.method == 'POST':
         game_name  = request.POST.get('game_name', '').strip()
         start_date_str = request.POST.get('start_date', '').strip()
@@ -254,11 +255,12 @@ def create_manage(request, creator_id, game_id):
     waypoints = game.waypoints.all()
 
     context = {
+        'username': user.username,
         'creator_id': creator_id,
-        'game_id':    game_id,
-        'game':       game,
-        'waypoints':  waypoints,
-        'waypoint_count':   waypoints.count(),
+        'game_id': game_id,
+        'game': game,
+        'waypoints': waypoints,
+        'waypoint_count': waypoints.count(),
         'last_point_count': waypoints.filter(is_last=True).count(),
     }
     return render(request, 'game/create_manage.html', context)
@@ -274,6 +276,7 @@ def ordinal(n):
 @owner_required
 def monitor(request, pk, creator_id):
     game = get_object_or_404(Game, pk=pk, game_creator_id=creator_id)
+    user  = User.objects.get(pk=creator_id)
     now = timezone.now()
 
     game_state = "not_started"
@@ -382,11 +385,11 @@ def monitor(request, pk, creator_id):
         })
 
     context = {
+        'username': user.username,
         'players': sorted_players,
         'game': game,
         'creator_id': creator_id,
         'waypoints': waypoints,
-     
         'game_state': game_state,
         'remaining_seconds_until_end': remaining_seconds_until_end, 
     }

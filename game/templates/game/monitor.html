@@ -5,6 +5,9 @@
 <head>
   <meta charset="UTF-8" />
   <title>GeoDeer - Monitor Game</title>
+  <link rel="icon" 
+  href="{% static 'images/favicon.png' %}" 
+  type="image/png">
   <!-- Leaflet CSS (CDN) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
   <style>
@@ -34,8 +37,75 @@
       justify-content: space-between;
       align-items: center;
       padding: 10px 20px;
-      flex: 0 0 auto;
     }
+
+    /* Logo styling */
+    .logo {
+      display: flex;
+      align-items: baseline;
+    }
+    .logo-title {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    .logo-subtitle {
+      font-size: 1rem;
+      font-weight: normal;
+      opacity: 0.8;
+    }
+
+    
+    /* User menu */
+    .user-menu {
+      position: relative;
+      background-color: var(--white);
+      color: var(--black);
+      display: flex;
+      align-items: center;
+      padding: 5px 10px;
+      border-radius: 20px;
+      cursor: pointer;
+    }
+    .user-menu img.user-icon {
+      width: 24px;
+      height: 24px;
+      margin-right: 8px;
+    }
+    .user-menu .username {
+      display: flex;
+      align-items: center;
+      font-size: 1rem;
+      font-weight: 500;
+    }
+    .user-menu img.arrow-icon {
+      width: 12px;
+      height: 12px;
+      margin-left: 4px;
+    }
+    .user-dropdown {
+      position: absolute;
+      top: calc(100% + 5px);
+      right: 0;
+      background-color: var(--white);
+      border: 1px solid var(--soft-blue);
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      display: none;
+      min-width: 100px;
+      z-index: 10;
+    }
+    .user-dropdown a {
+      display: block;
+      padding: 8px 12px;
+      text-decoration: none;
+      color: var(--black);
+      font-size: 0.95rem;
+    }
+    .user-dropdown a:hover {
+      background-color: var(--soft-blue);
+    }
+    
     #subheader {
       background-color: var(--soft-blue);
       color: var(--black);
@@ -212,8 +282,21 @@
 <body>
   <!-- Header Section -->
   <div id="header">
-    <div>GeoDeer</div>
-    <div>A Map-Based Treasure Hunt Game</div>
+    <div class="logo">
+      <div class="logo-title">GeoDeer</div>
+      <div class="logo-subtitle">A Map-Based Treasure Hunt Game</div>
+    </div>
+    <div class="user-menu" id="userMenu">
+      <img src="{% static 'images/user_icon.png' %}" alt="User Icon" class="user-icon">
+      <div class="username">
+        <span>{{ username }}</span>
+        <img src="{% static 'images/down-arrow.png' %}" alt="Dropdown Arrow" class="arrow-icon">
+      </div>
+      <div class="user-dropdown" id="userDropdown">
+        <a href="{% url 'logout' %}">Logout</a>
+      </div>
+    </div>
+  </div>
   </div>
 
   <!-- Subheader Section -->
@@ -276,6 +359,18 @@
 
 
   <script>
+    document.getElementById('userMenu').addEventListener('click', function(e) {
+      var dropdown = document.getElementById('userDropdown');
+      dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+    });
+    document.addEventListener('click', function(e) {
+      var menu = document.getElementById('userMenu');
+      var dropdown = document.getElementById('userDropdown');
+      if (!menu.contains(e.target)) {
+        dropdown.style.display = 'none';
+      }
+    });
+
     var map = L.map('map', { doubleClickZoom: false }).setView([39.8644, 32.7467], 15);
   
     var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
