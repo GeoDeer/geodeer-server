@@ -1,9 +1,9 @@
 from django.apps import apps
 
 def calculate_scores_for_game(game):
-    Question     = apps.get_model('game', 'Question')
+    Question = apps.get_model('game', 'Question')
     UserLocation = apps.get_model('game', 'UserLocation')
-    UserScore    = apps.get_model('game', 'UserScore')
+    UserScore = apps.get_model('game', 'UserScore')
 
     scores = list(UserScore.objects.filter(game=game))
 

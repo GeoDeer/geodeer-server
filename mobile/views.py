@@ -1,8 +1,104 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from django.contrib.auth import authenticate
+from django.contrib.auth.hashers import make_password
+from django.contrib.auth.models import User
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.hashers import check_password
+from game.models import User   # senin özel modelin
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Diğer importlarınız (serializer, modeller vb.)
 from game.models import *
-from .serializer import UserSerializer, GameSerializer, WaypointSerializer, UserLocationSerializer, UserScoreSerializer, QuestionSerializer
+from .serializer import (
+    UserSerializer,
+    GameSerializer,
+    WaypointSerializer,
+    UserLocationSerializer,
+    UserScoreSerializer,
+    QuestionSerializer,
+)
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@authentication_classes([])
+def api_login(request):
+
+    print(">>> /api/login/ body:", request.body) 
+    print(">>> /api/login/ data:", request.data)
+    
+    username = request.data.get('username')
+    password = request.data.get('password')
+
+    try:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        return Response({'detail': 'Kullanıcı adı veya şifre hatalı.'},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+    if not check_password(password, user.password):
+        return Response({'detail': 'Kullanıcı adı veya şifre hatalı.'},
+                        status=status.HTTP_400_BAD_REQUEST)
+
+    return Response({
+        'user_id': user.user_id,   # özel modelde id alanının adı böyleyse
+        'username': user.username,
+        'email':    user.email,
+    }, status=status.HTTP_200_OK)
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@authentication_classes([])
+def api_register(request):
+    """
+    POST ile gelen {username, email, password, password2} verilerini alır,
+    doğrulama yapar, yeni kullanıcı oluşturur.
+    """
+    username = request.data.get('username')
+    email = request.data.get('email')
+    pw1 = request.data.get('password')
+    pw2 = request.data.get('password2')
+
+    if not all([username, email, pw1, pw2]):
+        return Response(
+            {'detail': 'Tüm alanlar zorunlu.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    if pw1 != pw2:
+        return Response(
+            {'detail': 'Şifreler uyuşmuyor.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    if User.objects.filter(username=username).exists():
+        return Response(
+            {'detail': 'Bu kullanıcı adı zaten kayıtlı.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    if User.objects.filter(email=email).exists():
+        return Response(
+            {'detail': 'Bu e-posta zaten kayıtlı.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    user = User.objects.create(
+        username=username,
+        email=email,
+        password=make_password(pw1)
+    )
+    return Response(
+        {
+            'user_id': user.id,
+            'username': user.username,
+            'email': user.email,
+        },
+        status=status.HTTP_201_CREATED
+    )
 
 @api_view(['GET'])
 def get_user(request):
@@ -119,12 +215,18 @@ def get_user_location(request):
     return Response(serializer.data)
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def create_user_location(request):
-    serializer = UserLocationSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    print("→ create_user_location payload:", request.data)  
+    ser = UserLocationSerializer(data=request.data)
+    if not ser.is_valid():
+        print("!! serializer errors:", ser.errors)    
+        return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    instance = ser.save()                          # → DB’ye yazar
+    print("→ instance.id after save:", instance.id)  
+    out_ser  = UserLocationSerializer(instance)    # → id artık kesin dolu
+    return Response(out_ser.data, status=status.HTTP_201_CREATED)
 
 @api_view(['GET', 'PUT', 'DELETE'])
 def user_location_detail(request, pk):
@@ -255,3 +357,24 @@ def question_detail(request, waypoint_id):
     elif request.method == 'DELETE':
         question.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+@csrf_exempt                              # 1) CSRF filtresini devre dışı
+@authentication_classes([])               # 2) Session / Token auth yok
+@permission_classes([AllowAny])           # 3) Her isteğe izin ver
+@api_view(['POST'])
+def join_game(request):
+    game_id = request.data.get('game')
+    user_id = request.data.get('user')
+    if not game_id or not user_id:
+        return Response({'detail': 'game ve user alanı zorunlu'}, status=400)
+
+    try:
+        game = Game.objects.get(game_id=game_id)
+        user = User.objects.get(user_id=user_id)
+    except (Game.DoesNotExist, User.DoesNotExist):
+        return Response({'detail': 'Game veya User bulunamadı'}, status=404)
+
+    score, _ = UserScore.objects.get_or_create(
+        user=user, game=game, defaults={'total_score': 0}
+    )
+    return Response(UserScoreSerializer(score).data, status=201)

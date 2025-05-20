@@ -1,6 +1,9 @@
 from django.contrib.auth.hashers import make_password
 from rest_framework import serializers
 from game.models import User, Game, Waypoint, UserLocation, UserScore, Question
+from django.contrib.gis.geos import Point  
+import logging
+logger = logging.getLogger(__name__)
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -33,15 +36,20 @@ class WaypointSerializer(serializers.ModelSerializer):
 
 class UserLocationSerializer(serializers.ModelSerializer):
     class Meta:
-        model = UserLocation
-        fields = [
-            'id', 'user', 'game',
-            'lat', 'lon', 'location_geom',
-            'time_stamp', 'time_diff', 'distance', 'speed',
-        ]
-        read_only_fields = [
-            'time_stamp', 'time_diff', 'distance', 'speed',
-        ]
+        model  = UserLocation
+        fields = ['id','user','game','lat','lon','location_geom','time_stamp','time_diff','distance','speed']
+        read_only_fields = ['time_stamp','time_diff','distance','speed']
+
+    def create(self, validated_data):
+        logger.debug("🔔 UserLocationSerializer.create() called with %s", validated_data)
+        loc = validated_data.get('location_geom')
+        if isinstance(loc, dict):
+            lng, lat = loc['coordinates']
+            validated_data['location_geom'] = Point(lng, lat)
+        instance = UserLocation.objects.create(**validated_data)
+        logger.debug("🔔 Created instance.id = %s", instance.id)
+        return instance
+
 
 # class UserDistanceSerializer(serializers.ModelSerializer):
 #     class Meta:
@@ -50,8 +58,13 @@ class UserLocationSerializer(serializers.ModelSerializer):
 
 class UserScoreSerializer(serializers.ModelSerializer):
     class Meta:
-        model = UserScore
+        model  = UserScore
         fields = '__all__'
+        read_only_fields = ('user',)             # client user id gönderemez
+
+    # def create(self, validated):
+      #  validated['user'] = self.context['request'].user
+       # return UserLocation.objects.create(**validated_data)
 
 class QuestionSerializer(serializers.ModelSerializer):
     class Meta:

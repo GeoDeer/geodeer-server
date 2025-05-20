@@ -1,14 +1,16 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseForbidden
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.auth.models import User
 from django.contrib.gis.geos import Point
 from django.utils import timezone
+import pytz
 from .models import Game, UserScore, UserLocation, Waypoint, User, Question
 from .services.score_calculator import calculate_scores_for_game
-
+from datetime import timedelta
+from functools import wraps
 import datetime
 import json
 
@@ -61,6 +63,76 @@ import json
 
 #     return redirect("auth_page")
 
+def login_required(view_func):
+    @wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        if not request.session.get('user_id'):
+            return redirect('auth')
+        return view_func(request, *args, **kwargs)
+    return _wrapped
+
+def owner_required(view_func):
+    @wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        uid = request.session.get('user_id')
+        if uid != kwargs.get('creator_id'):
+            return redirect('auth')
+        return view_func(request, *args, **kwargs)
+    return _wrapped
+
+def auth_view(request):
+    if request.method == 'POST':
+        form_type = request.POST.get('form_type')
+
+        # --- LOGIN ---
+        if form_type == 'login':
+            username = request.POST.get('username', '').strip()
+            password = request.POST.get('password', '')
+            try:
+                user = User.objects.get(username=username)
+            except User.DoesNotExist:
+                messages.error(request, "User not found.")
+                return redirect('auth')
+
+            if check_password(password, user.password):
+                request.session['user_id'] = user.user_id
+                return redirect('main_menu', creator_id=user.user_id)
+            else:
+                messages.error(request, "Incorrect password.")
+                return redirect('auth')
+
+        # --- REGISTER ---
+        elif form_type == 'register':
+            username = request.POST.get('username', '').strip()
+            email    = request.POST.get('email', '').strip()
+            pwd1     = request.POST.get('password1', '')
+            pwd2     = request.POST.get('password2', '')
+
+            if pwd1 != pwd2:
+                messages.error(request, "Passwords do not match.")
+                return redirect('auth')
+
+            if User.objects.filter(username=username).exists():
+                messages.error(request, "This username is already taken.")
+                return redirect('auth')
+
+            user = User(
+                username=username,
+                email=email,
+                password=make_password(pwd1)
+            )
+            user.save()
+            messages.success(request, "Registration successful! Please log in.")
+            return redirect('auth')
+
+    return render(request, 'game/auth.html')
+
+def logout_view(request):
+    request.session.flush()
+    return redirect('auth')
+
+@login_required
+@owner_required
 def main_menu(request, creator_id):
     if request.method == 'POST':
         if 'delete_game' in request.POST:
@@ -74,116 +146,122 @@ def main_menu(request, creator_id):
         new_game = Game.objects.create(
             game_creator_id=creator_id,
             game_name=f'game_{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}',
-            start_date_time=datetime.datetime.now(),
+            start_date_time=timezone.now(),
             number_of_players=2,
             time=3600
         )
         return redirect('create_manage', creator_id=creator_id, game_id=new_game.game_id)
-
+    
+    user  = User.objects.get(pk=creator_id)
     games = Game.objects.filter(game_creator_id=creator_id).order_by('-start_date_time')
+    
     return render(request, 'game/main_menu.html', {
+        'username': user.username,
         'games': games,
-        'creator_id': creator_id, 
+        'creator_id': creator_id,
     })
 
+@login_required
+@owner_required
 def create_manage(request, creator_id, game_id):
     game = Game.objects.filter(game_id=game_id, game_creator_id=creator_id).first()
-    waypoints = game.waypoints.all().order_by('waypoint_id')
+    user  = User.objects.get(pk=creator_id)
     
     if request.method == 'POST':
-        game_name = request.POST.get('game_name', '').strip()
+        game_name  = request.POST.get('game_name', '').strip()
         start_date_str = request.POST.get('start_date', '').strip()
         start_time_str = request.POST.get('start_time', '').strip()
-        number_of_players_str = request.POST.get('number_of_players', '0').strip()
+        number_of_players = request.POST.get('number_of_players', '0').strip()
         time_str = request.POST.get('time', '').strip()
-
-        start_dt = None
+        user_tz_name = request.POST.get('user_timezone')
+        
+        aware_start_dt = None
         if start_date_str and start_time_str:
             try:
-                start_dt = datetime.datetime.strptime(
+                naive = datetime.datetime.strptime(
                     f"{start_date_str} {start_time_str}",
                     "%Y/%m/%d %H:%M:%S"
                 )
+                try:
+                    user_tz = pytz.timezone(user_tz_name)
+                except Exception:
+                    user_tz = timezone.get_current_timezone()
+                aware_start_dt = user_tz.localize(naive)
             except ValueError:
-                start_dt = None
+                messages.error(request, "Invalid date/time format provided.")
 
         try:
-            number_of_players = float(number_of_players_str)
+            num_players = float(number_of_players)
         except ValueError:
-            number_of_players = 0
+            num_players = 0
         try:
-            time_float = float(time_str)
+            duration = float(time_str)
         except ValueError:
-            time_float = 0
-
+            duration = 0
+            
         if game:
-            game.game_name = game_name
-            if start_dt:
-                game.start_date_time = start_dt
-            game.number_of_players = number_of_players
-            game.time = time_float
+            game.game_name       = game_name
+            if aware_start_dt:
+                game.start_date_time = aware_start_dt
+            game.number_of_players = num_players
+            game.time              = duration
             game.save()
         else:
             creator = get_object_or_404(User, id=creator_id)
             game = Game.objects.create(
-                game_name=game_name,
-                start_date_time=start_dt,
-                number_of_players=number_of_players,
-                time=time_float,
-                game_creator=creator,
+                game_name  = game_name or f"game_{timezone.now().strftime('%Y%m%d%H%M%S')}",
+                start_date_time = aware_start_dt or timezone.now(),
+                number_of_players = num_players,
+                time = duration,
+                game_creator = creator,
             )
 
-        waypoints_data = request.POST.get('waypoints_data', '[]')
-    
+        raw = request.POST.get('waypoints_data', '[]')
         try:
-            wps = json.loads(waypoints_data)
+            wps = json.loads(raw)
         except json.JSONDecodeError:
             wps = []
 
-        deleted_ids = json.loads(request.POST.get('deleted_ids', '[]'))
-        if deleted_ids:
-            Waypoint.objects.filter(game=game, waypoint_id__in=deleted_ids).delete()
+        deleted = json.loads(request.POST.get('deleted_ids', '[]') or '[]')
+        if deleted:
+            Waypoint.objects.filter(game=game, waypoint_id__in=deleted).delete()
 
         kept_ids = set()
-        for wp in wps:
-            wp_id = wp.get('id')
-
+        for idx, wp_data in enumerate(wps):
+            wp_id = wp_data.get('id')
             if wp_id:
-                waypoint = Waypoint.objects.filter(pk=wp_id, game=game).first()
-                if waypoint:
-                    waypoint.waypoint_name = wp.get('name', '')
-                    waypoint.hint = wp.get('hint', '')
-                    waypoint.question = wp.get('question', '')
-                    waypoint.answer = wp.get('answer', '')
-                    waypoint.ques_dif_level = float(wp.get('difficulty') or 0)
-                    waypoint.lat = float(wp.get('lat'))
-                    waypoint.lon = float(wp.get('lon'))
-                    waypoint.save()
-                    kept_ids.add(waypoint.pk)
+                wp = Waypoint.objects.filter(pk=wp_id, game=game).first()
             else:
-                new_wp = Waypoint.objects.create(
-                    game=game,
-                    waypoint_name=wp.get('name', ''),
-                    lat=float(wp.get('lat')),
-                    lon=float(wp.get('lon')),
-                    hint=wp.get('hint', ''),
-                    question=wp.get('question', ''),
-                    answer=wp.get('answer', ''),
-                    ques_dif_level=float(wp.get('difficulty') or 0),
-                )
-                kept_ids.add(new_wp.pk)
+                wp = Waypoint(game=game)
+
+            wp.waypoint_name  = wp_data.get('name', '')
+            wp.lat = float(wp_data.get('lat', 0))
+            wp.lon = float(wp_data.get('lon', 0))
+            wp.hint = wp_data.get('hint', '')
+            wp.question = wp_data.get('question', '')
+            wp.answer = wp_data.get('answer', '')
+            wp.ques_dif_level = float(wp_data.get('difficulty') or 0)
+
+            wp.order = idx
+
+            wp.save()
+            kept_ids.add(wp.pk)
 
         game.waypoints.exclude(pk__in=kept_ids).delete()
 
         return redirect('create_manage', creator_id=creator_id, game_id=game.game_id)
 
+
+    waypoints = game.waypoints.all()
+
     context = {
+        'username': user.username,
         'creator_id': creator_id,
         'game_id': game_id,
         'game': game,
         'waypoints': waypoints,
-        'waypoint_count': game.waypoints.count(),
-        'last_point_count':game.waypoints.filter(is_last=True).count(),
+        'waypoint_count': waypoints.count(),
+        'last_point_count': waypoints.filter(is_last=True).count(),
     }
     return render(request, 'game/create_manage.html', context)
 
@@ -194,13 +272,35 @@ def ordinal(n):
         suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')
     return str(n) + suffix
 
+@login_required
+@owner_required
 def monitor(request, pk, creator_id):
     game = get_object_or_404(Game, pk=pk, game_creator_id=creator_id)
-
+    user  = User.objects.get(pk=creator_id)
     now = timezone.now()
-    remaining_td = game.start_date_time - now
-    remaining_seconds = max(int(remaining_td.total_seconds()), 0)
-    
+
+    game_state = "not_started"
+    remaining_seconds_until_end = 0
+    end_time = None
+
+    try:
+        duration_seconds = int(game.time)
+        end_time = game.start_date_time + timedelta(seconds=duration_seconds)
+    except (TypeError, ValueError):
+        
+        print(f"Warning: Invalid game duration found for game {game.game_id}: {game.time}")
+        end_time = None 
+
+    if game.start_date_time > now:
+        game_state = "not_started"
+    elif end_time and now < end_time:
+        game_state = "running"
+        remaining_seconds_until_end = max(0, int((end_time - now).total_seconds()))
+    elif end_time and now >= end_time:
+        game_state = "finished"
+    else:
+        game_state = "unknown" 
+
     if request.method == "POST" and request.headers.get('x-requested-with') == 'XMLHttpRequest':
         player_id = request.POST.get('player_id')
         user = get_object_or_404(User, user_id=player_id)
@@ -234,19 +334,20 @@ def monitor(request, pk, creator_id):
         })
 
     sorted_players = sorted(players, key=lambda p: p['id'])
-    # available_colors = ['cyan', 'red', 'purple', 'yellow']
+    available_colors = ['cyan', 'red', 'purple', 'yellow']
     for i, player in enumerate(sorted_players):
-        # player['icon'] = available_colors[i % len(available_colors)]     for demo
-        if player['id'] == 1:
-            player['icon'] = 'red'
-        elif player['id'] == 3:
-            player['icon'] = 'yellow'
-        elif player['id'] == 4:
-            player['icon'] = 'purple'
-        elif player['id'] == 5:
-            player['icon'] = 'cyan'
-        elif player['id'] == 6:
-            player['icon'] = 'cyan'
+        player['icon'] = available_colors[i % len(available_colors)]     
+        
+        #if player['id'] == 1:   # for demo (eğer mantık çalışıyorsa kalsın burayı açmanıza gerek yok)
+        #    player['icon'] = 'red'
+        #elif player['id'] == 3:
+        #    player['icon'] = 'yellow'
+        #elif player['id'] == 4:
+        #    player['icon'] = 'purple'
+        #elif player['id'] == 5:
+        #    player['icon'] = 'cyan'
+        #elif player['id'] == 6:
+        #    player['icon'] = 'cyan'
 
     waypoints_qs = game.waypoints.all().order_by('waypoint_id')
     waypoints = []
@@ -270,21 +371,30 @@ def monitor(request, pk, creator_id):
         })
 
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        now_ajax = timezone.now() 
+        if game_state == "running": 
+             remaining_seconds_ajax = max(0, int((end_time - now_ajax).total_seconds())) if end_time else 0
+        else:
+             remaining_seconds_ajax = 0
+
         return JsonResponse({
             'players': sorted_players,
             'waypoints': waypoints,
-            'remaining_seconds': remaining_seconds,
+            'game_state': game_state, 
+            'remaining_seconds': remaining_seconds_ajax, 
         })
 
-    return render(request, 'game/monitor.html', {
+    context = {
+        'username': user.username,
         'players': sorted_players,
         'game': game,
         'creator_id': creator_id,
         'waypoints': waypoints,
-        'now': now,
-        'remaining_td': remaining_td,
-        'remaining_seconds': remaining_seconds,
-    })
+        'game_state': game_state,
+        'remaining_seconds_until_end': remaining_seconds_until_end, 
+    }
+    return render(request, 'game/monitor.html', context)
+   
     
 def results(request, game_id, creator_id):
     game = get_object_or_404(Game, pk=game_id, game_creator_id=creator_id)
@@ -324,15 +434,16 @@ def results(request, game_id, creator_id):
             speeds = [0, 0]
             
         speed_data['players'].append({
-            'name':   p['name'],
+            'name': p['name'],
             'speeds': speeds,
-            'icon':   p['icon']
+            'icon': p['icon']
         })
+        
     return render(request, 'game/results.html', {
-        'players':    sorted_players,
-        'game':       game,
-        'date':       game.start_date_time.strftime('%Y-%m-%d %H:%M'),
-        'winner':     sorted_players[0] if sorted_players else None,
+        'players': sorted_players,
+        'game': game,
+        'date':  game.start_date_time.strftime('%Y-%m-%d %H:%M'),
+        'winner':  sorted_players[0] if sorted_players else None,
         'speed_data': json.dumps(speed_data),
     })
 

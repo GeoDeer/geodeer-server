@@ -1,9 +1,13 @@
 {% load static %}
+{% load tz %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Main Menu</title>
+  <link rel="icon" 
+  href="{% static 'images/favicon.png' %}" 
+  type="image/png">
   <style>
     * {
       margin: 0;
@@ -38,6 +42,72 @@
       padding: 10px 20px;
     }
 
+    /* Logo styling */
+    .logo {
+      display: flex;
+      align-items: baseline;
+    }
+    .logo-title {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    .logo-subtitle {
+      font-size: 1rem;
+      font-weight: normal;
+      opacity: 0.8;
+    }
+
+    
+    /* User menu */
+    .user-menu {
+      position: relative;
+      background-color: var(--white);
+      color: var(--black);
+      display: flex;
+      align-items: center;
+      padding: 5px 10px;
+      border-radius: 20px;
+      cursor: pointer;
+    }
+    .user-menu img.user-icon {
+      width: 24px;
+      height: 24px;
+      margin-right: 8px;
+    }
+    .user-menu .username {
+      display: flex;
+      align-items: center;
+      font-size: 1rem;
+      font-weight: 500;
+    }
+    .user-menu img.arrow-icon {
+      width: 12px;
+      height: 12px;
+      margin-left: 4px;
+    }
+    .user-dropdown {
+      position: absolute;
+      top: calc(100% + 5px);
+      right: 0;
+      background-color: var(--white);
+      border: 1px solid var(--soft-blue);
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      display: none;
+      min-width: 100px;
+      z-index: 10;
+    }
+    .user-dropdown a {
+      display: block;
+      padding: 8px 12px;
+      text-decoration: none;
+      color: var(--black);
+      font-size: 0.95rem;
+    }
+    .user-dropdown a:hover {
+      background-color: var(--soft-blue);
+    }
     #main-content {
       display: flex;
       flex: 1;
@@ -122,8 +192,21 @@
 <body>
 
   <div id="header">
-    <div>GeoDeer</div>
-    <div>A Map-Based Treasure Hunt Game</div>
+    <div class="logo">
+      <div class="logo-title">GeoDeer</div>
+      <div class="logo-subtitle">A Map-Based Treasure Hunt Game</div>
+    </div>
+    <div class="user-menu" id="userMenu">
+      <img src="{% static 'images/user_icon.png' %}" alt="User Icon" class="user-icon">
+      <div class="username">
+        <span>{{ username }}</span>
+        <img src="{% static 'images/down-arrow.png' %}" alt="Dropdown Arrow" class="arrow-icon">
+      </div>
+      <div class="user-dropdown" id="userDropdown">
+        <a href="{% url 'logout' %}">Logout</a>
+      </div>
+    </div>
+  </div>
   </div>
 
   <main id="main-content">
@@ -160,6 +243,7 @@
 
     <section id="right-panel">
       <h2>My Games</h2>
+    </br>
       <p>Your previously created games are listed here.</p>
 
       <!-- BURASI DEĞİŞTİ -->
@@ -182,15 +266,17 @@
         </thead>
         <tbody>
           {% for game in games %}
-          <tr>
+          <tr data-utc-datetime="{{ game.start_date_time.isoformat }}">
             <td>{{ game.game_name }}</td>
             <td>{{ game.invite_id }}</td>
-            <td>{{ game.start_date_time|date:"d/m/Y" }}</td>
-            <td>{{ game.start_date_time|date:"H:i" }}</td>
+       
+            <td class="game-date">{{ game.start_date_time|date:"d/m/Y" }}</td> {# Fallback or loading text #}
+           
+            <td class="game-time">{{ game.start_date_time|date:"H:i" }}</td>   {# Fallback or loading text #}
             <td>
                 <a href="{% url 'monitor' creator_id=creator_id pk=game.game_id %}" class="btn">Monitor</a>
-              <a href="{% url 'results' creator_id=creator_id game_id=game.game_id %}" class="btn">Results</a>
               <a href="{% url 'create_manage' creator_id=creator_id game_id=game.game_id %}" class="btn">Manage</a>
+              <a href="{% url 'results' creator_id=creator_id game_id=game.game_id %}" class="btn">Results</a>
               <form method="post">
                 {% csrf_token %}
                 {% comment %} for demo {% endcomment %}
@@ -212,5 +298,65 @@
   <footer id="footer">
     <p>&copy; 2025 GeoDeer | All rights reserved</p>
   </footer>
+  
+  <script>
+    document.getElementById('userMenu').addEventListener('click', function(e) {
+      var dropdown = document.getElementById('userDropdown');
+      dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+    });
+    document.addEventListener('click', function(e) {
+      var menu = document.getElementById('userMenu');
+      var dropdown = document.getElementById('userDropdown');
+      if (!menu.contains(e.target)) {
+        dropdown.style.display = 'none';
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // Select all table rows with the data attribute
+      const gameRows = document.querySelectorAll('tr[data-utc-datetime]');
+      let userTimezone = 'UTC'; // Default timezone
+      try {
+         userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      } catch (e) {
+          console.error("Could not detect user timezone, defaulting to UTC.", e);
+      }
+
+      gameRows.forEach(row => {
+        const utcDateTimeString = row.dataset.utcDatetime;
+        const dateCell = row.querySelector('.game-date');
+        const timeCell = row.querySelector('.game-time');
+
+        if (utcDateTimeString && utcDateTimeString !== 'None' && dateCell && timeCell) {
+          try {
+            const dateObj = new Date(utcDateTimeString);
+
+            // Format Date (DD/MM/YYYY)
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            dateCell.textContent = `${day}/${month}/${year}`;
+
+            // Format Time (HH:MM)
+            const hours = String(dateObj.getHours()).padStart(2, '0');
+            const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+            timeCell.textContent = `${hours}:${minutes}`;
+
+          } catch (e) {
+            console.error("Error processing date/time for row:", utcDateTimeString, e);
+            // Keep the initial Django formatted text as fallback
+            dateCell.textContent = "Error";
+            timeCell.textContent = "Error";
+          }
+        } else if (dateCell && timeCell) {
+            // Handle cases where datetime might be None or cells not found correctly
+            // console.log("UTC datetime string missing or invalid for a row.");
+             dateCell.textContent = "-"; // Indicate no date/time set
+             timeCell.textContent = "-";
+        }
+      });
+    });
+  </script>
+
 </body>
 </html>

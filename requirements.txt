@@ -6,6 +6,7 @@ crispy-bootstrap5==2024.10
 decorator==5.1.1
 dj-database-url==2.3.0
 Django==5.1.5
+django-channels==0.7.0
 django-crispy-forms==2.3
 django-environ==0.12.0
 django-filter==24.3
@@ -31,6 +32,7 @@ psycopg2-binary==2.9.10
 ptyprocess==0.7.0
 pure-eval==0.2.2
 Pygments==2.15.1
+pytz==2025.2
 requests==2.32.3
 requests-oauthlib==2.0.0
 setuptools==75.8.0

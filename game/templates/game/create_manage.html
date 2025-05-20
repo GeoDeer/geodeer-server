@@ -1,10 +1,14 @@
 {% load static %}
+{% load tz %}
 <!DOCTYPE html>
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
   <title>GeoDeer - Create-Manage</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+  <link rel="icon" 
+  href="{% static 'images/favicon.png' %}" 
+  type="image/png">
   <style>
     * {
       margin: 0; 
@@ -38,6 +42,73 @@
       align-items: center;
       padding: 10px 20px;
     }
+
+    /* Logo styling */
+    .logo {
+      display: flex;
+      align-items: baseline;
+    }
+    .logo-title {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    .logo-subtitle {
+      font-size: 1rem;
+      font-weight: normal;
+      opacity: 0.8;
+    }
+
+    /* User menu */
+    .user-menu {
+      position: relative;
+      background-color: var(--white);
+      color: var(--black);
+      display: flex;
+      align-items: center;
+      padding: 5px 10px;
+      border-radius: 20px;
+      cursor: pointer;
+    }
+    .user-menu img.user-icon {
+      width: 24px;
+      height: 24px;
+      margin-right: 8px;
+    }
+    .user-menu .username {
+      display: flex;
+      align-items: center;
+      font-size: 1rem;
+      font-weight: 500;
+    }
+    .user-menu img.arrow-icon {
+      width: 12px;
+      height: 12px;
+      margin-left: 4px;
+    }
+    .user-dropdown {
+      position: absolute;
+      top: calc(100% + 5px);
+      right: 0;
+      background-color: var(--white);
+      border: 1px solid var(--soft-blue);
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      display: none;
+      min-width: 100px;
+      z-index: 1001;
+    }
+    .user-dropdown a {
+      display: block;
+      padding: 8px 12px;
+      text-decoration: none;
+      color: var(--black);
+      font-size: 0.95rem;
+    }
+    .user-dropdown a:hover {
+      background-color: var(--soft-blue);
+    }
+
     #main {
       flex: 1;
       display: flex;
@@ -364,14 +435,26 @@
     right: 440px;
     z-index: 9999 !important;
 
-
-
 </style>
 </head>
 <body>
   <div id="header">
-    <div class="logo">GeoDeer</div>
-    <div class="subtitle">A Map-Based Treasure Hunt Game</div>
+    <div class="logo">
+      <div class="logo-title">GeoDeer</div>
+      <div class="logo-subtitle">A Map-Based Treasure Hunt Game</div>
+    </div>
+    <div class="user-menu" id="userMenu">
+      <img src="{% static 'images/user_icon.png' %}" alt="User Icon" class="user-icon">
+      <div class="username">
+        <span>{{ username }}</span>
+        <img src="{% static 'images/down-arrow.png' %}" alt="Dropdown Arrow" class="arrow-icon">
+      </div>
+      <div class="user-dropdown" id="userDropdown">
+        <a href="{% url 'logout' %}">Logout</a>
+      </div>
+    </div>
+  </div>
+
   </div>
   <div id="main">
     <div id="sidebar">
@@ -396,7 +479,8 @@
         <button class="btn-coord" onclick="showCoordinates({{ forloop.counter }})">Show Coordinates</button>
         <button class="btn-edit" onclick="editPin({{ forloop.counter }})">Edit</button>
         <button class="btn-save-pin" onclick="savePin({{ forloop.counter }})" style="display:none;">Save</button>
-        {% if not forloop.first %}
+        {% comment %} Only show delete for the last waypoint, and not if it is also the first waypoint {% endcomment %}
+        {% if forloop.last and not forloop.first %}
         <button class="btn-delete" onclick="deletePin({{ forloop.counter }})">Delete</button>
         {% endif %}
       </div>
@@ -444,14 +528,16 @@
         {% csrf_token %}
         <label for="gameName">Game Name:</label>
         <input type="text" name="game_name" id="gameName" value="{{ game.game_name }}" />
-        <div style="display:flex;gap:10px;">
+        <div style="display:flex;gap:10px;" data-utc-datetime="{{ game.start_date_time.isoformat }}">
           <div>
             <label for="startDate">Start Date:</label>
-            <input type="text" name="start_date" id="startDate" value="{{ game.start_date_time|date:'Y/m/d' }}" />
+            {# Remove |localtime filter, value will be set by JS #}
+            <input type="text" name="start_date" id="startDate" value="" placeholder="YYYY/MM/DD" />
           </div>
           <div>
             <label for="startTimeOnly">Start Time:</label>
-            <input type="text" name="start_time" id="startTimeOnly" value="{{ game.start_date_time|date:'H:i:s' }}" />
+            {# Remove |localtime filter, value will be set by JS #}
+            <input type="text" name="start_time" id="startTimeOnly" value="" placeholder="HH:MM:SS" />
           </div>
         </div>
         <label for="numPlayers">Number of Players:</label>
@@ -459,17 +545,109 @@
         <label for="time">Time:</label>
         <input type="text" name="time" id="time" value="{{ game.time|floatformat:0 }}" />
         <input type="hidden" name="waypoints_data" id="waypointsData" />
+        {# Add hidden input for the user's timezone #}
+        <input type="hidden" name="user_timezone" id="userTimezone" />
       </form>
     </div>
   </div>
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
 <script>
+  document.getElementById('userMenu').addEventListener('click', function(e) {
+    var dropdown = document.getElementById('userDropdown');
+    dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+  });
+  document.addEventListener('click', function(e) {
+    var menu = document.getElementById('userMenu');
+    var dropdown = document.getElementById('userDropdown');
+    if (!menu.contains(e.target)) {
+      dropdown.style.display = 'none';
+    }
+  });
+
   var isSaved = true;
   var isEditable = false;
 
   let waypointCount = {{ waypoint_count }} > 0 ? {{ waypoint_count }} : 1;
   let hasInitialLast = {{ last_point_count }} > 0;
   {% comment %} let lastPointCount = {{ last_point_count }}; {% endcomment %}
+
+  // --- START: Timezone Handling Script ---
+  document.addEventListener('DOMContentLoaded', function() {
+    const dateTimeDiv = document.querySelector('[data-utc-datetime]');
+    const startDateInput = document.getElementById('startDate');
+    const startTimeInput = document.getElementById('startTimeOnly');
+    const gameInfoForm = document.getElementById('gameInfoForm');
+    const userTimezoneInput = document.getElementById('userTimezone');
+
+    if (dateTimeDiv && startDateInput && startTimeInput && gameInfoForm && userTimezoneInput) {
+      const utcDateTimeString = dateTimeDiv.dataset.utcDatetime;
+
+      if (utcDateTimeString && utcDateTimeString !== 'None') { // Check if game.start_date_time was set
+        try {
+          // 1. Get user's timezone name
+          const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          userTimezoneInput.value = userTimezone; // Set initial value for hidden input
+
+          // 2. Create a Date object from the UTC string
+          // ISO format like "2025-05-04T04:50:26.535852+00:00" is directly parsable
+          const dateObj = new Date(utcDateTimeString);
+
+          // 3. Format the date and time in the user's local timezone
+          // We need YYYY/MM/DD and HH:MM:SS formats
+
+          // Formatting Date (YYYY/MM/DD)
+          const year = dateObj.getFullYear();
+          const month = String(dateObj.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+          const day = String(dateObj.getDate()).padStart(2, '0');
+          startDateInput.value = `${year}/${month}/${day}`;
+
+          // Formatting Time (HH:MM:SS)
+          const hours = String(dateObj.getHours()).padStart(2, '0');
+          const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+          const seconds = String(dateObj.getSeconds()).padStart(2, '0');
+          startTimeInput.value = `${hours}:${minutes}:${seconds}`;
+
+        } catch (e) {
+          console.error("Error processing date/time:", e);
+          // Optionally set default values or show an error
+          startDateInput.placeholder = "Error";
+          startTimeInput.placeholder = "Error";
+        }
+      } else {
+         console.log("No initial UTC datetime found for game.");
+         // Set placeholder or default if no time is set yet
+         const now = new Date();
+         const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+         userTimezoneInput.value = userTimezone;
+
+         const year = now.getFullYear();
+         const month = String(now.getMonth() + 1).padStart(2, '0');
+         const day = String(now.getDate()).padStart(2, '0');
+         startDateInput.value = `${year}/${month}/${day}`;
+
+         const hours = String(now.getHours()).padStart(2, '0');
+         const minutes = String(now.getMinutes()).padStart(2, '0');
+         const seconds = String(now.getSeconds()).padStart(2, '0');
+         startTimeInput.value = `${hours}:${minutes}:${seconds}`;
+      }
+
+      // 4. Ensure the timezone is sent when the form is submitted
+      gameInfoForm.addEventListener('submit', function() {
+        // Re-detect timezone just in case? Usually not necessary.
+        try {
+            const currentTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            userTimezoneInput.value = currentTz;
+        } catch (e) {
+            console.error("Could not detect timezone on submit.");
+            // Keep the value set on page load or set a default?
+        }
+        // The hidden input already has the value, form submission will include it.
+      });
+    } else {
+        console.error("Required elements for timezone handling not found.");
+    }
+  });
+  // --- END: Timezone Handling Script ---
 
   function ordinal(n) {
     let s;
@@ -601,35 +779,55 @@
   }
 
   function deletePin(i) {
+    // This function is now only called for the LAST waypoint (index i = waypointCount)
     if (!isSaved) {
       alert('Please save the current waypoint before delete.');
       return;
     }
 
-    currentEditIndex = null;
+    currentEditIndex = null; // Reset edit index
     isEditable = false;
     isSaved = true;
-  
-    // const box = document.querySelector(`[data-index="${i}"]`);
-    // if (box && box.dataset.last === 'true') {
-    //    lastPointCount = Math.max(0, lastPointCount - 1);
-   // } 
 
-    waypointCount = Math.max(0, waypointCount - 1);
-
+    // Remove the marker for the waypoint being deleted
     if (markers[i]) {
       map.removeLayer(markers[i]);
       delete markers[i];
     }
-  
+
+    // Remove the waypoint box from the sidebar
     const box = document.querySelector(`[data-index="${i}"]`);
-    if (box) box.remove();
+    if (box) {
+      box.remove();
+    }
 
-    document.querySelectorAll('.waypoint-box').forEach((box, newIndex) => {
-      box.dataset.index = newIndex + 1;
-    });
+    // Decrement the total count
+    waypointCount = Math.max(0, waypointCount - 1); // Ensure it doesn't go below 0
 
-    updateTitles();
+    // If there's a new last waypoint (and it's not the start point), add the delete button to it
+    if (waypointCount > 1) {
+      const newLastBox = document.querySelector(`.waypoint-box[data-index="${waypointCount}"]`);
+      if (newLastBox && !newLastBox.querySelector('.btn-delete')) {
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'btn-delete';
+        deleteButton.textContent = 'Delete';
+        deleteButton.onclick = function() { deletePin(waypointCount); };
+        // Add it after the save button (or edit button if save is hidden)
+        const saveBtn = newLastBox.querySelector('.btn-save-pin');
+        const editBtn = newLastBox.querySelector('.btn-edit');
+        if (saveBtn && saveBtn.style.display !== 'none') {
+            saveBtn.parentNode.insertBefore(deleteButton, saveBtn.nextSibling);
+        } else if (editBtn) {
+             editBtn.parentNode.insertBefore(deleteButton, editBtn.nextSibling);
+        } else {
+            // Fallback: append to the box if buttons aren't found as expected
+            newLastBox.appendChild(deleteButton);
+        }
+      }
+    }
+
+    // No need to re-index or update titles generally, as only the last is removed.
+    // updateTitles(); // Keep if titles absolutely need re-numbering, but typically not required for this logic. Let's remove for now.
   }
 
   map.on('dblclick', function (e) {
@@ -667,6 +865,18 @@
       alert('Maximum 7 waypoints (including Start Point and Last Waypoint)!');
       return;
     }
+
+    // --- Start: Remove delete button from previous last waypoint ---
+    if (waypointCount > 1) { // Check if there is a waypoint other than the start point
+        const previousLastBox = document.querySelector(`.waypoint-box[data-index="${waypointCount}"]`);
+        if (previousLastBox) {
+            const existingDeleteBtn = previousLastBox.querySelector('.btn-delete');
+            if (existingDeleteBtn) {
+                existingDeleteBtn.remove();
+            }
+        }
+    }
+    // --- End: Remove delete button ---
 
     waypointCount++;
     var sb = document.getElementById('sidebar');

@@ -1,9 +1,13 @@
 {% load static %}
+{% load tz %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>GeoDeer - Monitor Game</title>
+  <link rel="icon" 
+  href="{% static 'images/favicon.png' %}" 
+  type="image/png">
   <!-- Leaflet CSS (CDN) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
   <style>
@@ -33,8 +37,75 @@
       justify-content: space-between;
       align-items: center;
       padding: 10px 20px;
-      flex: 0 0 auto;
     }
+
+    /* Logo styling */
+    .logo {
+      display: flex;
+      align-items: baseline;
+    }
+    .logo-title {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    .logo-subtitle {
+      font-size: 1rem;
+      font-weight: normal;
+      opacity: 0.8;
+    }
+
+    
+    /* User menu */
+    .user-menu {
+      position: relative;
+      background-color: var(--white);
+      color: var(--black);
+      display: flex;
+      align-items: center;
+      padding: 5px 10px;
+      border-radius: 20px;
+      cursor: pointer;
+    }
+    .user-menu img.user-icon {
+      width: 24px;
+      height: 24px;
+      margin-right: 8px;
+    }
+    .user-menu .username {
+      display: flex;
+      align-items: center;
+      font-size: 1rem;
+      font-weight: 500;
+    }
+    .user-menu img.arrow-icon {
+      width: 12px;
+      height: 12px;
+      margin-left: 4px;
+    }
+    .user-dropdown {
+      position: absolute;
+      top: calc(100% + 5px);
+      right: 0;
+      background-color: var(--white);
+      border: 1px solid var(--soft-blue);
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      display: none;
+      min-width: 100px;
+      z-index: 10;
+    }
+    .user-dropdown a {
+      display: block;
+      padding: 8px 12px;
+      text-decoration: none;
+      color: var(--black);
+      font-size: 0.95rem;
+    }
+    .user-dropdown a:hover {
+      background-color: var(--soft-blue);
+    }
+    
     #subheader {
       background-color: var(--soft-blue);
       color: var(--black);
@@ -165,7 +236,7 @@
       }
 
       #speed-chart > div {
-         margin-top: -10px;  /* aşağıdaki boşluğu hafif yukarı çeker */
+         margin-top: -10px;
        }
     }
     @media screen and (orientation: landscape) and (max-height: 500px) {
@@ -211,18 +282,40 @@
 <body>
   <!-- Header Section -->
   <div id="header">
-    <div>GeoDeer</div>
-    <div>A Map-Based Treasure Hunt Game</div>
+    <div class="logo">
+      <div class="logo-title">GeoDeer</div>
+      <div class="logo-subtitle">A Map-Based Treasure Hunt Game</div>
+    </div>
+    <div class="user-menu" id="userMenu">
+      <img src="{% static 'images/user_icon.png' %}" alt="User Icon" class="user-icon">
+      <div class="username">
+        <span>{{ username }}</span>
+        <img src="{% static 'images/down-arrow.png' %}" alt="Dropdown Arrow" class="arrow-icon">
+      </div>
+      <div class="user-dropdown" id="userDropdown">
+        <a href="{% url 'logout' %}">Logout</a>
+      </div>
+    </div>
+  </div>
   </div>
 
   <!-- Subheader Section -->
   <div id="subheader">
     <div>{{ game }}</div>
-    {% comment %} for demo  {% endcomment %}
-    {% comment %} <div>Remaining Time: {{ game.start_date_time|timeuntil }}</div> {% endcomment %} 
-    <div>Remaining Time: {{ game.start_date_time|timeuntil }}</div>
-    {% comment %} for demo {% endcomment %}
-    {% comment %} <div>[demo]</div> {% endcomment %} 
+    <div>
+      <span>Remaining Time: </span>
+      <span id="remainingTimeDisplay">
+        {% if game_state == "not_started" %}
+          Not Started Yet
+        {% elif game_state == "running" %}
+          --:--:--
+        {% elif game_state == "finished" %}
+          Game Over
+        {% else %}
+          Unknown
+        {% endif %}
+      </span>
+    </div>
   </div>
 
   <!-- Main Section -->
@@ -238,22 +331,9 @@
           </tr>
         </thead>
         <tbody id="players-body">
-          {% for player in players %}
-          <tr {% if player.disqualified %} style="text-decoration: line-through;" {% endif %}>
-            <td>{{ player.name }}</td>
-            <td id="score-{{ player.id }}">{{ player.score }}</td>
-            <td>
-              <button
-              class="disqualify"
-              data-player-id="{{ player.id }}"
-              {% if player.disqualified %} disabled {% endif %}
-              style="pointer-events: none; opacity: 0.5;"
-            >
-              Disqualify
-            </button>
-          </tr>
-          {% endfor %}
+        <!-- Players will be populated dynamically via JavaScript -->
         </tbody>
+
       </table>
     </div>
 
@@ -279,6 +359,18 @@
 
 
   <script>
+    document.getElementById('userMenu').addEventListener('click', function(e) {
+      var dropdown = document.getElementById('userDropdown');
+      dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+    });
+    document.addEventListener('click', function(e) {
+      var menu = document.getElementById('userMenu');
+      var dropdown = document.getElementById('userDropdown');
+      if (!menu.contains(e.target)) {
+        dropdown.style.display = 'none';
+      }
+    });
+
     var map = L.map('map', { doubleClickZoom: false }).setView([39.8644, 32.7467], 15);
   
     var osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -340,56 +432,62 @@
       }).addTo(map);
     {% endfor %}
   
-    function updateMarkers() {
-      fetch(window.location.href, {
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-      })
-      .then(r => r.json())
-      .then(data => {
-        data.players.forEach(p => {
+    function updateMarkers(playersData) {
+      const activePlayerIds = new Set();
+
+      playersData.forEach(p => {
+          activePlayerIds.add(String(p.id));
+
           if (p.disqualified) {
-            if (markers[p.id]) {
-              map.removeLayer(markers[p.id]);
-              delete markers[p.id];
-            }
-            if (polylines[p.id]) {
-              map.removeLayer(polylines[p.id]);
-              delete polylines[p.id];
-            }
-            return;
+              if (markers[p.id]) {
+                  map.removeLayer(markers[p.id]);
+                  delete markers[p.id];
+              }
+              if (polylines[p.id]) {
+                  map.removeLayer(polylines[p.id]);
+                  delete polylines[p.id];
+              }
+              return;
           }
-    
+
           const latlng = [p.lat, p.lon];
-  
+
           if (!markers[p.id]) {
-            markers[p.id] = L.marker(latlng, {
-              icon: getIcon(p.icon)
-            })
-            .addTo(map)
-            .bindTooltip(p.name, {
-              permanent: true,
-              direction: 'top',
-              offset: [0, -50]
-            });
+              markers[p.id] = L.marker(latlng, { icon: getIcon(p.icon) })
+                  .addTo(map)
+                  .bindTooltip(p.name, { permanent: true, direction: 'top', offset: [0, -50] });
           } else {
-            markers[p.id].setLatLng(latlng);
-            markers[p.id].setIcon(getIcon(p.icon));
+              markers[p.id].setLatLng(latlng);
+              markers[p.id].setIcon(getIcon(p.icon));
           }
-    
+
           const pathCoords = p.path.map(pt => [pt.lat, pt.lon]);
+          const polylineColor = p.icon === 'purple' ? '#9791d8' : (p.icon || '#ccc');
+
           if (!polylines[p.id]) {
-            polylines[p.id] = L.polyline(pathCoords, {
-              color: p.icon === 'purple' ? '#9791d8' : p.icon,
-              weight: 5,
-              dashArray: '10, 10',
-              className: 'polyline-shadow'
-            }).addTo(map);
+              polylines[p.id] = L.polyline(pathCoords, {
+                  color: polylineColor,
+                  weight: 5,
+                  dashArray: '10, 10',
+                  className: 'polyline-shadow'
+              }).addTo(map);
           } else {
-            polylines[p.id].setLatLngs(pathCoords);
+              polylines[p.id].setLatLngs(pathCoords);
           }
-        });
-      })
-      .catch(e => console.error('Marker update error:', e));
+      });
+
+      Object.keys(markers).forEach(playerId => {
+          if (!activePlayerIds.has(playerId)) {
+              map.removeLayer(markers[playerId]);
+              delete markers[playerId];
+          }
+      });
+      Object.keys(polylines).forEach(playerId => {
+          if (!activePlayerIds.has(playerId)) {
+              map.removeLayer(polylines[playerId]);
+              delete polylines[playerId];
+          }
+      });
     }
     
     document.querySelectorAll('.disqualify').forEach(function(button) {
@@ -460,96 +558,214 @@
         });
     });
 
+    var waypointBounds = L.latLngBounds(Object.values(waypointMarkers).map(marker => marker.getLatLng()));
+    if (waypointBounds.isValid()) {
+        map.fitBounds(waypointBounds, { padding: [50, 50] });
+    }
+
   const chart = echarts.init(document.getElementById('speed-chart'));
 
-  function updateSpeedChart() {
-    fetch(window.location.href, { headers:{'X-Requested-With':'XMLHttpRequest'} })
-      .then(r=>r.json())
-      .then(data=>{
-        const names = [], seriesData = [];
-        data.players.forEach(p=>{
-          if (!p.disqualified) {
-            names.push(p.name);
-            seriesData.push({ value: p.speed||0, itemStyle:{ color: p.icon } });
-          }
-        });
-        chart.setOption({
-          title:{ text:'Current Player Speeds (km/h)', left:'center' },
-          xAxis:{ type:'category', data:names },
-          yAxis:{ type:'value', min:0, name:'Speed (km/h)' },
-          series:[{ name:'Speed', type:'bar', data:seriesData }]
-        });
-        chart.resize();
-      })
-      .catch(e=>console.error('Speed chart update error:',e));
+  function updateSpeedChart(playersData) {
+    const names = [], seriesData = [];
+    playersData.forEach(p => {
+      if (!p.disqualified) {
+        names.push(p.name);
+        const color = p.icon === 'purple' ? '#9791d8' : (p.icon || '#ccc');
+        seriesData.push({ value: p.speed||0, itemStyle:{ color: color } });
+      }
+    });
+    chart.setOption({
+      title:{ text:'Current Player Speeds (km/h)', left:'center' },
+      xAxis:{ type:'category', data:names },
+      yAxis:{ type:'value', min:0, name:'Speed (km/h)' },
+      series:[{ name:'Speed', type:'bar', data:seriesData }]
+    }, { notMerge: false });
+    chart.resize();
   }
 
-  function renderPlayersTable(players) {
+  function renderPlayersTable(playersData) {
     const tbody = document.getElementById('players-body');
-    let html = '';
-    players.forEach(p => {
-      const trStyle = p.disqualified ? 'style="text-decoration:line-through"' : '';
-      const btnDisabled = p.disqualified ? 'disabled' : '';
-      html += `
-        <tr ${trStyle}>
-          </td>
-          <td>${p.name}</td>
-          <td>${p.score.toFixed(1)}</td>
-          <td>
-            <button
-              class="disqualify"
-              data-player-id="${p.id}"
-              ${btnDisabled}
-              style="pointer-events: none; opacity: 0.5;"
-            >Disqualify</button>
-          </td>
-        </tr>
-      `;
-    });
-    tbody.innerHTML = html;
-
-    document.querySelectorAll('.disqualify').forEach(btn => {
-      btn.addEventListener('click', function() {
-        if (!confirm('Are you sure you want to disqualify this player?')) {
-          return;
+    const existingRows = {};
+    tbody.querySelectorAll('tr').forEach(row => {
+        const playerId = row.dataset.playerId;
+        if (playerId) {
+            existingRows[playerId] = row;
         }
-        const playerId = this.dataset.playerId;
-        fetch(window.location.href, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-CSRFToken': '{{ csrf_token }}',
-            'X-Requested-With': 'XMLHttpRequest'
-          },
-          body: `player_id=${playerId}`
-        })
-        .then(r => r.json())
-        .then(data => {
-          if (data.status === 'success') {
-            updateAll();
-          }
-        })
-        .catch(err => console.error('Disqualify error:', err));
-      });
+    });
+
+    const processedPlayerIds = new Set();
+
+    playersData.forEach(p => {
+        const playerId = String(p.id);
+        processedPlayerIds.add(playerId);
+        let row = existingRows[playerId];
+
+        if (!row) {
+            row = document.createElement('tr');
+            row.dataset.playerId = playerId;
+            row.innerHTML = `
+              <td>${p.name}</td>
+              <td class="score">${p.score.toFixed(1)}</td>
+              <td>
+                <button class="disqualify" data-player-id="${p.id}" ${p.disqualified ? 'disabled' : ''}>
+                  Disqualify
+                </button>
+              </td>
+            `;
+            tbody.appendChild(row);
+            row.querySelector('.disqualify').addEventListener('click', handleDisqualifyClick);
+        } else {
+            const scoreCell = row.querySelector('.score');
+            if (scoreCell && scoreCell.textContent !== p.score.toFixed(1)) {
+                 scoreCell.textContent = p.score.toFixed(1);
+            }
+            const button = row.querySelector('.disqualify');
+            if (button) {
+                button.disabled = p.disqualified;
+            }
+            row.style.textDecoration = p.disqualified ? 'line-through' : 'none';
+        }
+
+        row.style.textDecoration = p.disqualified ? 'line-through' : 'none';
+        const button = row.querySelector('.disqualify');
+         if (button) {
+            button.disabled = p.disqualified;
+         }
+    });
+
+    Object.keys(existingRows).forEach(playerId => {
+        if (!processedPlayerIds.has(playerId)) {
+            existingRows[playerId].remove();
+        }
     });
   }
   
+  const remainingTimeDisplay = document.getElementById('remainingTimeDisplay');
+  let remainingSeconds = {{ remaining_seconds_until_end }};
+  const gameState = "{{ game_state }}";
+  let countdownInterval = null;
+
+  function formatTime(seconds) {
+    if (seconds < 0) seconds = 0;
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+
+  function startCountdown() {
+    if (remainingTimeDisplay && gameState === "running" && remainingSeconds > 0) {
+      remainingTimeDisplay.textContent = formatTime(remainingSeconds);
+      countdownInterval = setInterval(() => {
+        remainingSeconds--;
+        if (remainingSeconds >= 0) {
+          remainingTimeDisplay.textContent = formatTime(remainingSeconds);
+        } else {
+          remainingTimeDisplay.textContent = "Oyun Bitti";
+          clearInterval(countdownInterval);
+        }
+      }, 1000);
+    } else if (remainingTimeDisplay && gameState === "running" && remainingSeconds <= 0) {
+       remainingTimeDisplay.textContent = "Oyun Bitti";
+    }
+
+  }
+
+  document.addEventListener('DOMContentLoaded', startCountdown);
+
+  let updateInterval = null;
+
   function updateAll() {
     fetch(window.location.href, { headers:{ 'X-Requested-With':'XMLHttpRequest' } })
-      .then(r => r.json())
+      .then(r => {
+          if (!r.ok) { throw new Error(`HTTP error! status: ${r.status}`); }
+          return r.json();
+       })
       .then(data => {
-        updateMarkers();
-  
-        updateSpeedChart();
-  
+        updateMarkers(data.players);
+        updateSpeedChart(data.players);
         renderPlayersTable(data.players);
+
+        const currentGameState = data.game_state;
+        const currentRemainingSeconds = data.remaining_seconds;
+
+        if (currentGameState !== 'finished') {
+           // No need to call these again, they are called above with data
+           // updateMarkers();
+           // updateSpeedChart();
+           // renderPlayersTable(data.players); // Already called
+        } else {
+             // If game finished, ensure updates stop
+             if (updateInterval) {
+                console.log("Game finished. Stopping further updates.");
+                clearInterval(updateInterval);
+                updateInterval = null;
+             }
+             // Ensure timer shows finished state
+             remainingTimeDisplay.textContent = "Game Over";
+             if (countdownInterval) clearInterval(countdownInterval);
+             countdownInterval = null;
+             return; // Stop further processing in this cycle if finished
+        }
+
+        if (currentGameState === 'running' && currentRemainingSeconds !== undefined) {
+            remainingSeconds = currentRemainingSeconds;
+            if (remainingSeconds > 0) {
+                if (!countdownInterval) {
+                    startCountdown();
+                }
+                 remainingTimeDisplay.textContent = formatTime(remainingSeconds);
+            } else {
+                 remainingTimeDisplay.textContent = "Game Over";
+                 if (countdownInterval) clearInterval(countdownInterval);
+                 countdownInterval = null;
+            }
+        } else if (currentGameState === 'not_started') {
+             remainingTimeDisplay.textContent = "Not Started Yet";
+             if (countdownInterval) clearInterval(countdownInterval);
+             countdownInterval = null;
+        }
       })
-      .catch(e => console.error('Update error:', e));
+      .catch(e => {
+          console.error('Update error:', e);
+          // Maybe stop interval if there are persistent errors?
+          // clearInterval(updateInterval); updateInterval = null;
+      });
   }
 
   updateAll();
-  setInterval(updateAll, 3000);
+
+  updateInterval = setInterval(updateAll, 3000);
   
+  function handleDisqualifyClick() {
+      if (!confirm('Are you sure you want to disqualify this player?')) {
+          return;
+      }
+      const playerId = this.dataset.playerId;
+      fetch(window.location.href, {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'X-CSRFToken': '{{ csrf_token }}',
+              'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: `player_id=${playerId}`
+      })
+      .then(r => r.json())
+      .then(data => {
+          if (data.status === 'success') {
+              updateAll();
+          } else {
+              console.error('Disqualify failed:', data.message || 'Unknown error');
+              alert('Failed to disqualify player.');
+          }
+      })
+      .catch(err => {
+            console.error('Disqualify error:', err);
+            alert('An error occurred while trying to disqualify the player.');
+       });
+  }
+
   </script>
 </body>
 </html>
