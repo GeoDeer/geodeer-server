@@ -25,7 +25,7 @@
       --black: #000000;
       --gray-green: #A7B8A6;
       --soft-blue: #B3D8E7;
-      --vibrant-orange: #ff5050;
+      --vibrant-orange: #FF7F50;
       --red: #e01111;
     }
     html, body {
@@ -164,7 +164,7 @@
       resize: vertical;
 }
 
-    }
+    
     .waypoint-box input[type="range"] {
       cursor: pointer;
     }
@@ -902,11 +902,11 @@
       <label>Waypoint Name:</label>
       <input type="text" class="wp-name" placeholder="${ordinal(waypointCount - 1)} Waypoint" />
       <label>Question:</label>
-      <textarea class="wp-question" disabled>{{ wp.question }}</textarea>
+      <textarea class="wp-question" placeholder="Please enter a question."></textarea>
       <label>Answer:</label>
       <input type="text" class="wp-answer" placeholder="Please enter an answer." />
       <label>Hint:</label>
-      <textarea class="wp-hint" disabled>{{ wp.hint }}</textarea>
+      <textarea class="wp-hint" placeholder="Please enter a hint."></textarea>
       <label>Question Difficulty Level (1-10):</label>
       <input type="range" min="1" max="10" class="difficulty-slider" oninput="this.previousElementSibling.innerText=this.value" />
       <button class="btn-coord" onclick="showCoordinates(${waypointCount})">Show Coordinates</button>
