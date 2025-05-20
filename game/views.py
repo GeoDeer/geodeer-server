@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseForbidden
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.hashers import make_password, check_password
@@ -10,7 +10,7 @@ import pytz
 from .models import Game, UserScore, UserLocation, Waypoint, User, Question
 from .services.score_calculator import calculate_scores_for_game
 from datetime import timedelta
-
+from functools import wraps
 import datetime
 import json
 
@@ -63,6 +63,76 @@ import json
 
 #     return redirect("auth_page")
 
+def login_required(view_func):
+    @wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        if not request.session.get('user_id'):
+            return redirect('auth')
+        return view_func(request, *args, **kwargs)
+    return _wrapped
+
+def owner_required(view_func):
+    @wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        uid = request.session.get('user_id')
+        if uid != kwargs.get('creator_id'):
+            return redirect('auth')
+        return view_func(request, *args, **kwargs)
+    return _wrapped
+
+def auth_view(request):
+    if request.method == 'POST':
+        form_type = request.POST.get('form_type')
+
+        # --- LOGIN ---
+        if form_type == 'login':
+            username = request.POST.get('username', '').strip()
+            password = request.POST.get('password', '')
+            try:
+                user = User.objects.get(username=username)
+            except User.DoesNotExist:
+                messages.error(request, "User not found.")
+                return redirect('auth')
+
+            if check_password(password, user.password):
+                request.session['user_id'] = user.user_id
+                return redirect('main_menu', creator_id=user.user_id)
+            else:
+                messages.error(request, "Incorrect password.")
+                return redirect('auth')
+
+        # --- REGISTER ---
+        elif form_type == 'register':
+            username = request.POST.get('username', '').strip()
+            email    = request.POST.get('email', '').strip()
+            pwd1     = request.POST.get('password1', '')
+            pwd2     = request.POST.get('password2', '')
+
+            if pwd1 != pwd2:
+                messages.error(request, "Passwords do not match.")
+                return redirect('auth')
+
+            if User.objects.filter(username=username).exists():
+                messages.error(request, "This username is already taken.")
+                return redirect('auth')
+
+            user = User(
+                username=username,
+                email=email,
+                password=make_password(pwd1)
+            )
+            user.save()
+            messages.success(request, "Registration successful! Please log in.")
+            return redirect('auth')
+
+    return render(request, 'game/auth.html')
+
+def logout_view(request):
+    request.session.flush()
+    return redirect('auth')
+
+@login_required
+@owner_required
 def main_menu(request, creator_id):
     if request.method == 'POST':
         if 'delete_game' in request.POST:
@@ -81,23 +151,28 @@ def main_menu(request, creator_id):
             time=3600
         )
         return redirect('create_manage', creator_id=creator_id, game_id=new_game.game_id)
-
+    
+    user  = User.objects.get(pk=creator_id)
     games = Game.objects.filter(game_creator_id=creator_id).order_by('-start_date_time')
+    
     return render(request, 'game/main_menu.html', {
+        'username': user.username,
         'games': games,
-        'creator_id': creator_id, 
+        'creator_id': creator_id,
     })
 
+@login_required
+@owner_required
 def create_manage(request, creator_id, game_id):
     game = Game.objects.filter(game_id=game_id, game_creator_id=creator_id).first()
 
     if request.method == 'POST':
-        game_name         = request.POST.get('game_name', '').strip()
-        start_date_str    = request.POST.get('start_date', '').strip()
-        start_time_str    = request.POST.get('start_time', '').strip()
+        game_name  = request.POST.get('game_name', '').strip()
+        start_date_str = request.POST.get('start_date', '').strip()
+        start_time_str = request.POST.get('start_time', '').strip()
         number_of_players = request.POST.get('number_of_players', '0').strip()
-        time_str          = request.POST.get('time', '').strip()
-        user_tz_name      = request.POST.get('user_timezone')
+        time_str = request.POST.get('time', '').strip()
+        user_tz_name = request.POST.get('user_timezone')
         
         aware_start_dt = None
         if start_date_str and start_time_str:
@@ -122,7 +197,7 @@ def create_manage(request, creator_id, game_id):
             duration = float(time_str)
         except ValueError:
             duration = 0
-        # Game objesini güncelle
+            
         if game:
             game.game_name       = game_name
             if aware_start_dt:
@@ -133,11 +208,11 @@ def create_manage(request, creator_id, game_id):
         else:
             creator = get_object_or_404(User, id=creator_id)
             game = Game.objects.create(
-                game_name       = game_name or f"game_{timezone.now().strftime('%Y%m%d%H%M%S')}",
+                game_name  = game_name or f"game_{timezone.now().strftime('%Y%m%d%H%M%S')}",
                 start_date_time = aware_start_dt or timezone.now(),
                 number_of_players = num_players,
-                time              = duration,
-                game_creator      = creator,
+                time = duration,
+                game_creator = creator,
             )
 
         raw = request.POST.get('waypoints_data', '[]')
@@ -159,11 +234,11 @@ def create_manage(request, creator_id, game_id):
                 wp = Waypoint(game=game)
 
             wp.waypoint_name  = wp_data.get('name', '')
-            wp.lat            = float(wp_data.get('lat', 0))
-            wp.lon            = float(wp_data.get('lon', 0))
-            wp.hint           = wp_data.get('hint', '')
-            wp.question       = wp_data.get('question', '')
-            wp.answer         = wp_data.get('answer', '')
+            wp.lat = float(wp_data.get('lat', 0))
+            wp.lon = float(wp_data.get('lon', 0))
+            wp.hint = wp_data.get('hint', '')
+            wp.question = wp_data.get('question', '')
+            wp.answer = wp_data.get('answer', '')
             wp.ques_dif_level = float(wp_data.get('difficulty') or 0)
 
             wp.order = idx
@@ -195,6 +270,8 @@ def ordinal(n):
         suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')
     return str(n) + suffix
 
+@login_required
+@owner_required
 def monitor(request, pk, creator_id):
     game = get_object_or_404(Game, pk=pk, game_creator_id=creator_id)
     now = timezone.now()
