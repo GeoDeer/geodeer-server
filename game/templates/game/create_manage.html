@@ -575,7 +575,6 @@
   let hasInitialLast = {{ last_point_count }} > 0;
   {% comment %} let lastPointCount = {{ last_point_count }}; {% endcomment %}
 
-  // --- START: Timezone Handling Script ---
   document.addEventListener('DOMContentLoaded', function() {
     const dateTimeDiv = document.querySelector('[data-utc-datetime]');
     const startDateInput = document.getElementById('startDate');
@@ -588,24 +587,16 @@
 
       if (utcDateTimeString && utcDateTimeString !== 'None') { // Check if game.start_date_time was set
         try {
-          // 1. Get user's timezone name
           const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
           userTimezoneInput.value = userTimezone; // Set initial value for hidden input
 
-          // 2. Create a Date object from the UTC string
-          // ISO format like "2025-05-04T04:50:26.535852+00:00" is directly parsable
           const dateObj = new Date(utcDateTimeString);
 
-          // 3. Format the date and time in the user's local timezone
-          // We need YYYY/MM/DD and HH:MM:SS formats
-
-          // Formatting Date (YYYY/MM/DD)
           const year = dateObj.getFullYear();
           const month = String(dateObj.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
           const day = String(dateObj.getDate()).padStart(2, '0');
           startDateInput.value = `${year}/${month}/${day}`;
 
-          // Formatting Time (HH:MM:SS)
           const hours = String(dateObj.getHours()).padStart(2, '0');
           const minutes = String(dateObj.getMinutes()).padStart(2, '0');
           const seconds = String(dateObj.getSeconds()).padStart(2, '0');
@@ -613,13 +604,13 @@
 
         } catch (e) {
           console.error("Error processing date/time:", e);
-          // Optionally set default values or show an error
+
           startDateInput.placeholder = "Error";
           startTimeInput.placeholder = "Error";
         }
       } else {
          console.log("No initial UTC datetime found for game.");
-         // Set placeholder or default if no time is set yet
+  
          const now = new Date();
          const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
          userTimezoneInput.value = userTimezone;
@@ -635,24 +626,18 @@
          startTimeInput.value = `${hours}:${minutes}:${seconds}`;
       }
 
-      // 4. Ensure the timezone is sent when the form is submitted
       gameInfoForm.addEventListener('submit', function() {
-        // Re-detect timezone just in case? Usually not necessary.
         try {
             const currentTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
             userTimezoneInput.value = currentTz;
         } catch (e) {
             console.error("Could not detect timezone on submit.");
-            // Keep the value set on page load or set a default?
         }
-        // The hidden input already has the value, form submission will include it.
       });
     } else {
         console.error("Required elements for timezone handling not found.");
     }
   });
-  // --- END: Timezone Handling Script ---
-
   function ordinal(n) {
     let s;
     if (11 <= (n % 100) && (n % 100) <= 13) {
@@ -783,32 +768,28 @@
   }
 
   function deletePin(i) {
-    // This function is now only called for the LAST waypoint (index i = waypointCount)
+
     if (!isSaved) {
       alert('Please save the current waypoint before delete.');
       return;
     }
 
-    currentEditIndex = null; // Reset edit index
+    currentEditIndex = null; 
     isEditable = false;
-    isSaved = true;
+    {% comment %} isSaved = true; {% endcomment %}
 
-    // Remove the marker for the waypoint being deleted
     if (markers[i]) {
       map.removeLayer(markers[i]);
       delete markers[i];
     }
 
-    // Remove the waypoint box from the sidebar
     const box = document.querySelector(`[data-index="${i}"]`);
     if (box) {
       box.remove();
     }
 
-    // Decrement the total count
     waypointCount = Math.max(0, waypointCount - 1); // Ensure it doesn't go below 0
 
-    // If there's a new last waypoint (and it's not the start point), add the delete button to it
     if (waypointCount > 1) {
       const newLastBox = document.querySelector(`.waypoint-box[data-index="${waypointCount}"]`);
       if (newLastBox && !newLastBox.querySelector('.btn-delete')) {
@@ -824,14 +805,10 @@
         } else if (editBtn) {
              editBtn.parentNode.insertBefore(deleteButton, editBtn.nextSibling);
         } else {
-            // Fallback: append to the box if buttons aren't found as expected
             newLastBox.appendChild(deleteButton);
         }
       }
     }
-
-    // No need to re-index or update titles generally, as only the last is removed.
-    // updateTitles(); // Keep if titles absolutely need re-numbering, but typically not required for this logic. Let's remove for now.
   }
 
   map.on('dblclick', function (e) {
@@ -870,8 +847,7 @@
       return;
     }
 
-    // --- Start: Remove delete button from previous last waypoint ---
-    if (waypointCount > 1) { // Check if there is a waypoint other than the start point
+    if (waypointCount > 1) {
         const previousLastBox = document.querySelector(`.waypoint-box[data-index="${waypointCount}"]`);
         if (previousLastBox) {
             const existingDeleteBtn = previousLastBox.querySelector('.btn-delete');
@@ -880,8 +856,7 @@
             }
         }
     }
-    // --- End: Remove delete button ---
-
+  
     waypointCount++;
     var sb = document.getElementById('sidebar');
     var box = document.createElement('div');
