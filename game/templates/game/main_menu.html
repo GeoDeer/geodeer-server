@@ -203,6 +203,7 @@
         <img src="{% static 'images/down-arrow.png' %}" alt="Dropdown Arrow" class="arrow-icon">
       </div>
       <div class="user-dropdown" id="userDropdown">
+        <a href="{% url 'profile' creator_id=creator_id %}">Profile</a>
         <a href="{% url 'logout' %}">Logout</a>
       </div>
     </div>

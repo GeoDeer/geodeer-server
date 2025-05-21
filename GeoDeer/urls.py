@@ -22,6 +22,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.auth_view, name='auth'),
     path('logout/', views.logout_view, name='logout'),
+    path('profile/<int:creator_id>/', views.profile, name='profile'),
     path('main-menu/<int:creator_id>/', views.main_menu, name='main_menu'),
     path('game/', include('game.urls')),
     path('api/', include('mobile.urls')),

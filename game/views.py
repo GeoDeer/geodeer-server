@@ -75,7 +75,8 @@ def owner_required(view_func):
     @wraps(view_func)
     def _wrapped(request, *args, **kwargs):
         uid = request.session.get('user_id')
-        if uid != kwargs.get('creator_id'):
+        target = kwargs.get('creator_id') or kwargs.get('user_id')
+        if uid != target:
             return redirect('auth')
         return view_func(request, *args, **kwargs)
     return _wrapped
@@ -133,6 +134,59 @@ def logout_view(request):
 
 @login_required
 @owner_required
+def profile(request, creator_id):
+    user_obj = get_object_or_404(User, pk=creator_id)
+
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        email = request.POST.get('email', '').strip()
+        current_password = request.POST.get('current_password', '')
+        new_password  = request.POST.get('new_password', '')
+        new_password_again = request.POST.get('new_password_again', '')
+
+        errors = False
+
+        if username and username != user_obj.username:
+            if User.objects.filter(username=username).exclude(pk=creator_id).exists():
+                messages.error(request, "This username is already taken.")
+                errors = True
+            else:
+                user_obj.username = username
+
+        if email and email != user_obj.email:
+            if User.objects.filter(email=email).exclude(pk=creator_id).exists():
+                messages.error(request, "This email is already taken.")
+                errors = True
+            else:
+                user_obj.email = email
+
+        if any([current_password, new_password, new_password_again]):
+            if not (current_password and new_password and new_password_again):
+                messages.error(request, "To change password, fill out all three password fields.")
+                errors = True
+            else:
+                if not check_password(current_password, user_obj.password):
+                    messages.error(request, "Current password is incorrect.")
+                    errors = True
+                elif new_password != new_password_again:
+                    messages.error(request, "New passwords do not match.")
+                    errors = True
+                else:
+                    user_obj.password = make_password(new_password)
+
+        if not errors:
+            user_obj.save()
+            messages.success(request, "Your profile has been updated.")
+            return redirect('profile', creator_id=creator_id)
+
+    return render(request, 'game/profile.html', {
+        'username': user_obj.username,
+        'creator_id': creator_id,
+        'user_obj': user_obj
+    })
+
+@login_required
+@owner_required
 def main_menu(request, creator_id):
     if request.method == 'POST':
         if 'delete_game' in request.POST:
@@ -156,6 +210,7 @@ def main_menu(request, creator_id):
     games = Game.objects.filter(game_creator_id=creator_id).order_by('-start_date_time')
     
     return render(request, 'game/main_menu.html', {
+        'user': user,
         'username': user.username,
         'games': games,
         'creator_id': creator_id,
@@ -255,6 +310,7 @@ def create_manage(request, creator_id, game_id):
     waypoints = game.waypoints.all()
 
     context = {
+        'user': user,
         'username': user.username,
         'creator_id': creator_id,
         'game_id': game_id,
@@ -385,6 +441,7 @@ def monitor(request, pk, creator_id):
         })
 
     context = {
+        'user': user,
         'username': user.username,
         'players': sorted_players,
         'game': game,
