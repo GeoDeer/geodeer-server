@@ -535,12 +535,10 @@
         <div style="display:flex;gap:10px;" data-utc-datetime="{{ game.start_date_time.isoformat }}">
           <div>
             <label for="startDate">Start Date:</label>
-            {# Remove |localtime filter, value will be set by JS #}
             <input type="text" name="start_date" id="startDate" value="" placeholder="YYYY/MM/DD" />
           </div>
           <div>
             <label for="startTimeOnly">Start Time:</label>
-            {# Remove |localtime filter, value will be set by JS #}
             <input type="text" name="start_time" id="startTimeOnly" value="" placeholder="HH:MM:SS" />
           </div>
         </div>
@@ -549,7 +547,6 @@
         <label for="time">Time:</label>
         <input type="text" name="time" id="time" value="{{ game.time|floatformat:0 }}" />
         <input type="hidden" name="waypoints_data" id="waypointsData" />
-        {# Add hidden input for the user's timezone #}
         <input type="hidden" name="user_timezone" id="userTimezone" />
       </form>
     </div>
@@ -585,15 +582,15 @@
     if (dateTimeDiv && startDateInput && startTimeInput && gameInfoForm && userTimezoneInput) {
       const utcDateTimeString = dateTimeDiv.dataset.utcDatetime;
 
-      if (utcDateTimeString && utcDateTimeString !== 'None') { // Check if game.start_date_time was set
+      if (utcDateTimeString && utcDateTimeString !== 'None') { 
         try {
           const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-          userTimezoneInput.value = userTimezone; // Set initial value for hidden input
+          userTimezoneInput.value = userTimezone; 
 
           const dateObj = new Date(utcDateTimeString);
 
           const year = dateObj.getFullYear();
-          const month = String(dateObj.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+          const month = String(dateObj.getMonth() + 1).padStart(2, '0'); 
           const day = String(dateObj.getDate()).padStart(2, '0');
           startDateInput.value = `${year}/${month}/${day}`;
 
