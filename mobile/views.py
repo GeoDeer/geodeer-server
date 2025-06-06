@@ -223,9 +223,9 @@ def create_user_location(request):
         print("!! serializer errors:", ser.errors)    
         return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    instance = ser.save()                          # → DB’ye yazar
+    instance = ser.save()                          
     print("→ instance.id after save:", instance.id)  
-    out_ser  = UserLocationSerializer(instance)    # → id artık kesin dolu
+    out_ser  = UserLocationSerializer(instance)    
     return Response(out_ser.data, status=status.HTTP_201_CREATED)
 
 @api_view(['GET', 'PUT', 'DELETE'])
