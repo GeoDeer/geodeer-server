@@ -31,7 +31,7 @@ Modern digital lifestyles often keep people indoors, limiting their interaction 
 - ⛔ Emulator/vehicle usage detection & disqualification  
 - 👤 Main Menu & Profile Screen for Game Creators
 - 📊 Game Monitor for Live User Location Tracking and Score Visualization  
-- 🛠️ Admin Dashboard for Game Creation and Management  
+- 🛠️ Django Admin Panel 
 
 ## ⚙️ Tech Stack
 
