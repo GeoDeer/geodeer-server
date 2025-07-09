@@ -785,7 +785,7 @@
       box.remove();
     }
 
-    waypointCount = Math.max(0, waypointCount - 1); // Ensure it doesn't go below 0
+    waypointCount = Math.max(0, waypointCount - 1);
 
     if (waypointCount > 1) {
       const newLastBox = document.querySelector(`.waypoint-box[data-index="${waypointCount}"]`);
@@ -794,7 +794,7 @@
         deleteButton.className = 'btn-delete';
         deleteButton.textContent = 'Delete';
         deleteButton.onclick = function() { deletePin(waypointCount); };
-        // Add it after the save button (or edit button if save is hidden)
+
         const saveBtn = newLastBox.querySelector('.btn-save-pin');
         const editBtn = newLastBox.querySelector('.btn-edit');
         if (saveBtn && saveBtn.style.display !== 'none') {
